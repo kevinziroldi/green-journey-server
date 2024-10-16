@@ -49,6 +49,4 @@ func main() {
 		// TODO must be done (don't remove)
 		SetupRoutes()
 	*/
-
-	SetupRoutes()
 }
