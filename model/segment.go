@@ -1,0 +1,24 @@
+package model
+
+import "time"
+
+type Segment struct {
+	SegmentID   int           `gorm:"column:id_segment;primaryKey;autoIncrement" json:"segment_id"`
+	Departure   string        `gorm:"column:departure;type:text;not null" json:"departure"`
+	Destination string        `gorm:"column:destination;type:text;not null" json:"destination"`
+	Date        time.Time     `gorm:"column:date;type:date;not null" json:"date"`
+	Hour        time.Time     `gorm:"column:time;type:time;not null" json:"time"`
+	Duration    time.Duration `gorm:"column:duration;type:time;not null" json:"duration"`
+	Vehicle     string        `gorm:"column:vehicle;type:text;not null" json:"vehicle"`
+	Description string        `gorm:"column:description;type:text" json:"description"`
+	Price       float64       `gorm:"column:price;type:numeric;not null" json:"price"`
+	CO2Emitted  float64       `gorm:"column:co2_emitted;type:numeric;not null" json:"co2_emitted"`
+	Distance    float64       `gorm:"column:distance;type:numeric;not null" json:"distance"`
+	NumSegment  int           `gorm:"column:num_segment;type:integer;not null" json:"num_segment"`
+	IsOutbound  bool          `gorm:"column:is_outbound;type:boolean;not null" json:"is_outbound"`
+	TravelID    int           `gorm:"column:id_travel;type:integer;not null;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"travel_id"`
+}
+
+func (Segment) TableName() string {
+	return "segment"
+}
