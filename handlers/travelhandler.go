@@ -33,13 +33,13 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 	// get request parameters
 	from := r.URL.Query().Get("from")
 	to := r.URL.Query().Get("to")
-	date, err := time.Parse("2006-01-02", r.URL.Query().Get("date"))
+	dateOutward, err := time.Parse("2006-01-02", r.URL.Query().Get("dateOutward"))
 	if err != nil {
 		log.Println("Wrong date format: ", err)
 		http.Error(w, "Wrong date format", http.StatusBadRequest)
 		return
 	}
-	timeReq, err := time.Parse("15:04", r.URL.Query().Get("time"))
+	timeOutward, err := time.Parse("15:04", r.URL.Query().Get("timeOutward"))
 	if err != nil {
 		log.Println("Wrong time format: ", err)
 		http.Error(w, "Wrong time format", http.StatusBadRequest)
@@ -57,22 +57,38 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Wrong round trip value", http.StatusBadRequest)
 		return
 	}
+	var dateReturn, timeReturn time.Time
+	if roundTrip {
+		dateReturn, err = time.Parse("2006-01-02", r.URL.Query().Get("dateReturn"))
+		if err != nil {
+			log.Println("Wrong date format: ", err)
+			http.Error(w, "Wrong date format", http.StatusBadRequest)
+			return
+		}
+		timeReturn, err = time.Parse("15:04", r.URL.Query().Get("timeReturn"))
+		if err != nil {
+			log.Println("Wrong time format: ", err)
+			http.Error(w, "Wrong time format", http.StatusBadRequest)
+			return
+		}
+	}
 
 	// call all apis and return data
 	// always retrieve outbound data
-	outboundData := computeApiData(from, to, date, timeReq, true)
+	outboundData := computeApiData(from, to, dateOutward, timeOutward, true)
 	// check roundTrip to retrieve return data
 	var returnData [][]model.Segment
 	if roundTrip {
-		returnData = computeApiData(from, to, date, timeReq, false)
+		returnData = computeApiData(from, to, dateReturn, timeReturn, false)
 	}
 
 	// build response
 	response := ApiData{
+		// TODO così non ha più senso, o metto tutti i dati outbound / return, altrimenti tolgo
 		From:     from,
 		To:       to,
-		Date:     date.Format("2006-01-02"),
-		Time:     timeReq.Format("15:04"),
+		Date:     dateOutward.Format("2006-01-02"),
+		Time:     timeOutward.Format("15:04"),
 		Outbound: outboundData,
 		Return:   returnData,
 	}
