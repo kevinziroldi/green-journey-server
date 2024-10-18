@@ -15,10 +15,6 @@ import (
 )
 
 type ApiData struct {
-	From     string            `json:"from"`
-	To       string            `json:"to"`
-	Date     string            `json:"date"`
-	Time     string            `json:"time"`
 	Outbound [][]model.Segment `json:"outbound"`
 	Return   [][]model.Segment `json:"return"`
 }
@@ -84,11 +80,6 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 
 	// build response
 	response := ApiData{
-		// TODO così non ha più senso, o metto tutti i dati outbound / return, altrimenti tolgo
-		From:     from,
-		To:       to,
-		Date:     dateOutward.Format("2006-01-02"),
-		Time:     timeOutward.Format("15:04"),
 		Outbound: outboundData,
 		Return:   returnData,
 	}
