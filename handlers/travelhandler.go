@@ -103,42 +103,113 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func computeApiData(from, to string, date, time time.Time, isOutbound bool) [][]model.Segment {
+func computeApiData(from, to string, date, t time.Time, isOutbound bool) [][]model.Segment {
 	var apiData [][]model.Segment
 
+	// time + 1 hour
+	date1 := date
+	time1 := t
+	date1.Add(time.Hour * 1)
+	time1.Add(time.Hour * 1)
+
+	// time + 2 hour
+	date2 := date
+	time2 := t
+	date2.Add(time.Hour * 2)
+	time2.Add(time.Hour * 2)
+
 	// bike data
-	directionsBike, err := externals.GetDirectionsBike(from, to, date, time, isOutbound)
-	if err == nil {
+	directionsBike, err := externals.GetDirectionsBike(from, to, date, t, isOutbound)
+	if err == nil && directionsBike != nil {
 		apiData = append(apiData, directionsBike)
 	}
 
 	// car data
-	directionsCar, err := externals.GetDirectionsCar(from, to, date, time, isOutbound)
-	if err == nil {
+	directionsCar, err := externals.GetDirectionsCar(from, to, date, t, isOutbound)
+	if err == nil && directionsCar != nil {
 		apiData = append(apiData, directionsCar)
 	}
 
-	// train data
-	directionsTrain, err := externals.GetDirectionsTrain(from, to, date, time, isOutbound)
-	if err == nil {
+	// train data right time
+	directionsTrain, err := externals.GetDirectionsTrain(from, to, date, t, isOutbound)
+	if err == nil && directionsTrain != nil {
 		apiData = append(apiData, directionsTrain)
 	}
+	// train data increased time +1 hour
+	directionsTrain1, err := externals.GetDirectionsTrain(from, to, date1, time1, isOutbound)
+	if err == nil && directionsTrain1 != nil &&
+		differentDirections(directionsTrain, directionsTrain1) {
+		apiData = append(apiData, directionsTrain1)
+	}
+	// train data increased time +2 hours
+	directionsTrain2, err := externals.GetDirectionsTrain(from, to, date2, time2, isOutbound)
+	if err == nil && directionsTrain2 != nil &&
+		differentDirections(directionsTrain, directionsTrain2) &&
+		differentDirections(directionsTrain1, directionsTrain2) {
+		apiData = append(apiData, directionsTrain2)
+	}
 
-	// bus data
-	busData, err := externals.GetDirectionsBus(from, to, date, time, isOutbound)
-	if err == nil {
-		apiData = append(apiData, busData)
+	// bus data right time
+	directionsBus, err := externals.GetDirectionsBus(from, to, date, t, isOutbound)
+	if err == nil && directionsBus != nil {
+		apiData = append(apiData, directionsBus)
+	}
+	// bus data increased time +1 hour
+	directionsBus1, err := externals.GetDirectionsBus(from, to, date1, time1, isOutbound)
+	if err == nil && directionsBus1 != nil &&
+		differentDirections(directionsBus, directionsBus1) {
+		apiData = append(apiData, directionsBus1)
+	}
+	// bus data increased time +2 hours
+	directionsBus2, err := externals.GetDirectionsBus(from, to, date2, time2, isOutbound)
+	if err == nil && directionsBus2 != nil &&
+		differentDirections(directionsBus, directionsBus2) &&
+		differentDirections(directionsBus1, directionsBus2) {
+		apiData = append(apiData, directionsBus2)
 	}
 
 	// plane data
-	planeData, err := externals.GetFlights(from, to, date, isOutbound)
-	if err == nil {
-		for i := range planeData {
-			apiData = append(apiData, planeData[i])
+	directionsPlane, err := externals.GetFlights(from, to, date, isOutbound)
+	if err == nil && directionsPlane != nil {
+		for i := range directionsPlane {
+			if directionsPlane[i] != nil {
+				apiData = append(apiData, directionsPlane[i])
+			}
 		}
 	}
 
 	return apiData
+}
+
+func differentDirections(d1, d2 []model.Segment) bool {
+	// return true if they are different, false otherwise
+
+	// compare size
+	if len(d1) != len(d2) {
+		return true
+	}
+
+	// compare segments
+	for i := 0; i < len(d1); i++ {
+		s1 := d1[i]
+		s2 := d2[i]
+		if s1.Departure != s2.Departure ||
+			s1.Destination != s2.Destination ||
+			s1.Date != s2.Date ||
+			s1.Hour != s2.Hour ||
+			s1.Duration != s2.Duration ||
+			s1.Vehicle != s2.Vehicle ||
+			s1.Description != s2.Description ||
+			s1.Price != s2.Price ||
+			s1.CO2Emitted != s2.CO2Emitted ||
+			s1.Distance != s2.Distance ||
+			s1.NumSegment != s2.NumSegment ||
+			s1.IsOutbound != s2.IsOutbound {
+			return true
+		}
+	}
+
+	return false
 }
 
 func HandleTravelsUser(w http.ResponseWriter, r *http.Request) {
