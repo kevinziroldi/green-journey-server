@@ -31,8 +31,16 @@ func getUserById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	idStr := r.URL.Query().Get("id")
+
+	// check id present
+	if idStr == "" {
+		log.Println("User id is missing")
+		http.Error(w, "User id is required", http.StatusBadRequest)
+		return
+	}
+	// check id format
 	id, err := strconv.Atoi(idStr)
-	if err != nil {
+	if err != nil || id <= 0 {
 		log.Println("User id is not valid")
 		http.Error(w, "The provided id is not valid", http.StatusBadRequest)
 		return

@@ -28,7 +28,17 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 
 	// get request parameters
 	from := r.URL.Query().Get("from")
+	if from == "" {
+		log.Println("Missing departure city value")
+		http.Error(w, "Missing departure city value", http.StatusBadRequest)
+		return
+	}
 	to := r.URL.Query().Get("to")
+	if to == "" {
+		log.Println("Missing arrival city value")
+		http.Error(w, "Missing arrival city value", http.StatusBadRequest)
+		return
+	}
 	dateOutward, err := time.Parse("2006-01-02", r.URL.Query().Get("dateOutward"))
 	if err != nil {
 		log.Println("Wrong date format: ", err)
@@ -153,8 +163,8 @@ func getTravelsByUserId(w http.ResponseWriter, r *http.Request) {
 
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		log.Println("Wrong id format: ", err)
+	if err != nil || id < 0 {
+		log.Println("Wrong id value: ", err)
 		http.Error(w, "The provided id is not valid", http.StatusBadRequest)
 		return
 	}
