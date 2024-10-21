@@ -81,11 +81,12 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 
 	// call all apis and return data
 	// always retrieve outbound data
-	outboundData := computeApiData(from, to, dateOutward, timeOutward, true)
+	outboundData := ComputeApiData(from, to, dateOutward, timeOutward, true)
 	// check roundTrip to retrieve return data
 	var returnData [][]model.Segment
 	if roundTrip {
-		returnData = computeApiData(from, to, dateReturn, timeReturn, false)
+		// invert from and to
+		returnData = ComputeApiData(to, from, dateReturn, timeReturn, false)
 	}
 
 	// build response
@@ -103,20 +104,20 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func computeApiData(from, to string, date, t time.Time, isOutbound bool) [][]model.Segment {
+func ComputeApiData(from, to string, date, t time.Time, isOutbound bool) [][]model.Segment {
 	var apiData [][]model.Segment
 
 	// time + 1 hour
 	date1 := date
 	time1 := t
-	date1.Add(time.Hour * 1)
-	time1.Add(time.Hour * 1)
+	date1.Add(time.Hour * 2)
+	time1.Add(time.Hour * 2)
 
 	// time + 2 hour
 	date2 := date
 	time2 := t
-	date2.Add(time.Hour * 2)
-	time2.Add(time.Hour * 2)
+	date2.Add(time.Hour * 4)
+	time2.Add(time.Hour * 4)
 
 	// bike data
 	directionsBike, err := externals.GetDirectionsBike(from, to, date, t, isOutbound)

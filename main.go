@@ -36,17 +36,13 @@ func main() {
 
 	// get access token amadeus api
 	// TODO must be done (do not remove from main)
-	/*
-		err = externals.GetAccessToken()
-		if err != nil {
-			log.Fatalf("Failed to get amadeus api access token: %v", err)
-			return
-		}
-	*/
+	err = externals.GetAccessToken()
+	if err != nil {
+		log.Fatalf("Failed to get amadeus api access token: %v", err)
+		return
+	}
 
-	/*
-		// setup routes
-		// TODO must be done (don't remove)
-		SetupRoutes()
-	*/
+	// setup routes
+	// TODO must be done (don't remove)
+	SetupRoutes()
 }

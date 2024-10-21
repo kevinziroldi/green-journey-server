@@ -447,26 +447,53 @@ func decodeDirectionsTransit(body []byte, transitMode string, isOutbound bool) (
 	var segments []model.Segment
 	numSegment := 0
 	for _, step := range leg.Steps {
-		// check no missing step data
-		if step.TravelMode == "" ||
-			step.TransitDetails == nil ||
-			step.TransitDetails.Line == nil ||
-			step.TransitDetails.Line.Vehicle == nil ||
-			step.TransitDetails.DepartureTime == nil ||
-			step.TransitDetails.DepartureStop == nil ||
-			step.TransitDetails.ArrivalStop == nil ||
-			step.Distance == nil ||
-			step.Duration == nil {
-			log.Println("Missing data in the response")
-			return nil, fmt.Errorf("missing data in response")
-		}
-
+		var segment model.Segment
 		numSegment++
 
-		// check segment travel mode
-		// allow for walking segments
-		travelMode := "walk"
-		if step.TravelMode != "WALKING" {
+		if step.TravelMode == "WALKING" {
+			duration := 0
+			if step.Duration != nil {
+				duration = step.Duration.Value
+			}
+
+			distance := 0.0
+			if step.Distance != nil {
+				distance = float64(step.Distance.Value)
+			}
+
+			segment = model.Segment{
+				// id is autoincrement
+				Departure:   "",
+				Destination: "",
+				Date:        time.Unix(0, 0),
+				Hour:        time.Unix(0, 0),
+				Duration:    time.Duration(duration) * time.Second,
+				Vehicle:     "walk",
+				Description: "",
+				Price:       0,
+				Distance:    distance,
+				CO2Emitted:  0,
+				NumSegment:  numSegment,
+				IsOutbound:  isOutbound,
+				// travel id set later
+			}
+		} else {
+			// check no missing step data
+			if step.TravelMode == "" ||
+				step.TransitDetails == nil ||
+				step.TransitDetails.Line == nil ||
+				step.TransitDetails.Line.Vehicle == nil ||
+				step.TransitDetails.DepartureTime == nil ||
+				step.TransitDetails.DepartureStop == nil ||
+				step.TransitDetails.ArrivalStop == nil ||
+				step.Distance == nil ||
+				step.Duration == nil {
+				log.Println("Missing data in the response")
+				return nil, fmt.Errorf("missing data in response")
+			}
+
+			// check segment travel mode
+			travelMode := ""
 			found := false
 			if transitMode == "bus" {
 				for _, vehicle := range busVehicles {
@@ -486,37 +513,37 @@ func decodeDirectionsTransit(body []byte, transitMode string, isOutbound bool) (
 			if !found {
 				return nil, fmt.Errorf("provided data has wrong transit mode")
 			}
-		}
 
-		// compute segment properties
-		returnedTime := time.Unix(step.TransitDetails.DepartureTime.Value, 0)
-		departure := step.TransitDetails.DepartureStop.Name
-		destination := step.TransitDetails.ArrivalStop.Name
-		distance := float64(step.Distance.Value) / 1000
+			// compute segment properties
+			returnedTime := time.Unix(step.TransitDetails.DepartureTime.Value, 0)
+			departure := step.TransitDetails.DepartureStop.Name
+			destination := step.TransitDetails.ArrivalStop.Name
+			distance := float64(step.Distance.Value) / 1000
 
-		co2Emitted := 0.0
-		if transitMode == "train" {
-			co2Emitted = internals.ComputeTrainEmission(int(distance))
-		} else if transitMode == "bus" {
-			co2Emitted = internals.ComputeBusEmission(int(distance))
-		}
+			co2Emitted := 0.0
+			if transitMode == "train" {
+				co2Emitted = internals.ComputeTrainEmission(int(distance))
+			} else if transitMode == "bus" {
+				co2Emitted = internals.ComputeBusEmission(int(distance))
+			}
 
-		// create segment
-		segment := model.Segment{
-			// id is autoincrement
-			Departure:   departure,
-			Destination: destination,
-			Date:        time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
-			Hour:        time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
-			Duration:    time.Duration(step.Duration.Value) * time.Second,
-			Vehicle:     travelMode,
-			Description: step.TransitDetails.Line.ShortName + ", " + step.TransitDetails.Line.Name,
-			Price:       GetTransitCost(departure, destination, transitMode),
-			Distance:    distance,
-			CO2Emitted:  co2Emitted,
-			NumSegment:  numSegment,
-			IsOutbound:  isOutbound,
-			// travel id set later
+			// create segment
+			segment = model.Segment{
+				// id is autoincrement
+				Departure:   departure,
+				Destination: destination,
+				Date:        time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
+				Hour:        time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
+				Duration:    time.Duration(step.Duration.Value) * time.Second,
+				Vehicle:     travelMode,
+				Description: step.TransitDetails.Line.ShortName + ", " + step.TransitDetails.Line.Name,
+				Price:       GetTransitCost(departure, destination, transitMode),
+				Distance:    distance,
+				CO2Emitted:  co2Emitted,
+				NumSegment:  numSegment,
+				IsOutbound:  isOutbound,
+				// travel id set later
+			}
 		}
 
 		// append to list
