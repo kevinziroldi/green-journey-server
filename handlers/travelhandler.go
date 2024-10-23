@@ -101,7 +101,6 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding JSON", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func ComputeApiData(from, to string, date, t time.Time, isOutbound bool) [][]model.Segment {

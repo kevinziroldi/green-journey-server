@@ -86,46 +86,44 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// check non-empty strings
+	// check non-empty strings (only for mandatory fields)
 	if user.FirstName == "" ||
 		user.LastName == "" ||
-		user.BirthDate == "" ||
-		user.Gender == "" ||
-		user.FirebaseUID == "" ||
-		user.StreetName == "" ||
-		user.City == "" {
+		user.FirebaseUID == "" {
 		log.Println("Missing required fields")
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 	// check birthdate format and value
-	birthDate, err := time.Parse("2006-01-02", user.BirthDate)
-	if err != nil {
-		log.Println("Invalid data: ", err)
-		http.Error(w, "Invalid birth date format", http.StatusBadRequest)
-		return
-	}
-	if birthDate.After(time.Now()) {
-		log.Println("Invalid data: ", err)
-		http.Error(w, "Birth date cannot be in the future", http.StatusBadRequest)
-		return
+	if user.BirthDate != "" {
+		birthDate, err := time.Parse("2006-01-02", user.BirthDate)
+		if err != nil {
+			log.Println("Invalid data: ", err)
+			http.Error(w, "Invalid birth date format", http.StatusBadRequest)
+			return
+		}
+		if birthDate.After(time.Now()) {
+			log.Println("Invalid data: ", err)
+			http.Error(w, "Birth date cannot be in the future", http.StatusBadRequest)
+			return
+		}
 	}
 	// check valid zip code and house number
 	if user.ZipCode <= 0 {
-		log.Println("Invalid data: ", err)
-		http.Error(w, "Invalid zip code", http.StatusBadRequest)
-		return
+		// undefined bot not mandatory
+		user.ZipCode = 0
 	}
 	if user.HouseNumber <= 0 {
-		log.Println("Invalid data: ", err)
-		http.Error(w, "Invalid house number", http.StatusBadRequest)
-		return
+		// undefined bot not mandatory
+		user.HouseNumber = 0
 	}
-	// check gender
-	if user.Gender != "male" && user.Gender != "female" && user.Gender != "other" {
-		log.Println("Invalid data: ", err)
-		http.Error(w, "Invalid gender value", http.StatusBadRequest)
-		return
+	if user.Gender != "" {
+		// check gender
+		if user.Gender != "male" && user.Gender != "female" && user.Gender != "other" {
+			log.Println("Invalid data: ", err)
+			http.Error(w, "Invalid gender value", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// insert user
@@ -235,7 +233,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		user.Gender = gender
 	}
 	zipCode, isNumber := updateData["zip_code"].(float64)
-	if isNumber && zipCode >= 0 {
+	if isNumber && zipCode > 0 {
 		user.ZipCode = int(zipCode)
 	}
 	streetName, isString := updateData["street_name"].(string)
@@ -243,7 +241,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		user.StreetName = streetName
 	}
 	houseNumber, isNumber := updateData["house_number"].(float64)
-	if isNumber && houseNumber >= 0 {
+	if isNumber && houseNumber > 0 {
 		user.HouseNumber = int(houseNumber)
 	}
 	city, isString := updateData["city"].(string)
