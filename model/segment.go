@@ -8,7 +8,7 @@ type Segment struct {
 	Destination string        `gorm:"column:destination;type:text;not null" json:"destination"`
 	Date        time.Time     `gorm:"column:date;type:date;not null" json:"date"`
 	Hour        time.Time     `gorm:"column:time;type:time;not null" json:"time"`
-	Duration    time.Duration `gorm:"column:duration;type:time;not null" json:"duration"`
+	Duration    time.Duration `gorm:"column:duration;type:interval;not null" json:"duration"`
 	Vehicle     string        `gorm:"column:vehicle;type:text;not null" json:"vehicle"`
 	Description string        `gorm:"column:description;type:text" json:"description"`
 	Price       float64       `gorm:"column:price;type:numeric;not null" json:"price"`
