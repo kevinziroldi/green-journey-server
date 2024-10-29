@@ -289,7 +289,7 @@ func GetDirectionsCar(departure, destination string, date time.Time, hour time.T
 
 	distance := response.Rows[0].Elements[0].Distance.Value / 1000
 	fuelCostPerLiter := GetFuelCostPerLiter(departure)
-	tollCost := GetTollCost(departure, destination)
+	tollCost := GetTollCost(departure, destination, distance)
 
 	segment := model.Segment{
 		SegmentID:   -1,
@@ -537,7 +537,7 @@ func decodeDirectionsTransit(body []byte, transitMode string, isOutbound bool) (
 				Duration:    time.Duration(step.Duration.Value) * time.Second,
 				Vehicle:     travelMode,
 				Description: step.TransitDetails.Line.ShortName + ", " + step.TransitDetails.Line.Name,
-				Price:       GetTransitCost(departure, destination, transitMode),
+				Price:       GetTransitCost(departure, destination, transitMode, int(distance)),
 				Distance:    distance,
 				CO2Emitted:  co2Emitted,
 				NumSegment:  numSegment,

@@ -7,17 +7,18 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 type TransitCostResponse struct {
 	TransitCost float64 `json:"transit-cost"`
 }
 
-func GetTransitCost(from, to, transitMode string) float64 {
+func GetTransitCost(from, to, transitMode string, distance int) float64 {
 	transitCost := 0.0
 
 	// call api
-	apiUrl := "http://localhost:8082/transitcostapi?from=" + url.QueryEscape(from) + "&to=" + url.QueryEscape(to) + "&mode=" + url.QueryEscape(transitMode)
+	apiUrl := "http://localhost:8082/transitcostapi?from=" + url.QueryEscape(from) + "&to=" + url.QueryEscape(to) + "&mode=" + url.QueryEscape(transitMode) + "&distance=" + strconv.Itoa(distance)
 	resp, err := http.Get(apiUrl)
 	if err != nil {
 		log.Println("Error while getting transit cost from api")

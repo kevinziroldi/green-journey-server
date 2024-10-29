@@ -7,17 +7,18 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 type TollCostResponse struct {
 	TollCost float64 `json:"toll-cost"`
 }
 
-func GetTollCost(from, to string) float64 {
+func GetTollCost(from, to string, distance int) float64 {
 	tollCost := 0.0
 
 	// call api
-	apiUrl := "http://localhost:8081/tollapi?from=" + url.QueryEscape(from) + "&to=" + url.QueryEscape(to)
+	apiUrl := "http://localhost:8081/tollapi?from=" + url.QueryEscape(from) + "&to=" + url.QueryEscape(to) + "&distance=" + url.QueryEscape(strconv.Itoa(distance))
 	resp, err := http.Get(apiUrl)
 	if err != nil {
 		log.Println("Error while getting toll cost from api")
