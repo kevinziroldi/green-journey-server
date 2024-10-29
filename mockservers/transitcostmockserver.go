@@ -8,7 +8,7 @@ import (
 )
 
 var trainCostPerKm = 0.11
-var busCostPerKm = 0.011
+var busCostPerKm = 0.07
 
 func StartTransitCostApiServer() {
 	http.HandleFunc("/transitcostapi", TransitCostApiHandler)
