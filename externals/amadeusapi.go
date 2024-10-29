@@ -345,7 +345,7 @@ func GetFlights(origin, destination string, date time.Time, isOutbound bool) ([]
 				CO2Emitted: internals.ComputeAircraftEmission(int(duration.Hours()), int(duration.Minutes())),
 				Distance:   distance,
 				NumSegment: numSegment,
-				IsOutbound: isOutbound,
+				IsOutward:  isOutbound,
 				// travel id can't be set here
 			}
 			flight = append(flight, segment)

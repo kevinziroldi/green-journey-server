@@ -15,8 +15,8 @@ import (
 )
 
 type ApiData struct {
-	Outbound [][]model.Segment `json:"outbound"`
-	Return   [][]model.Segment `json:"return"`
+	OutwardOptions [][]model.Segment `json:"outward_options"`
+	ReturnOptions  [][]model.Segment `json:"return_options"`
 }
 
 func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
@@ -80,8 +80,8 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// call all apis and return data
-	// always retrieve outbound data
-	outboundData := ComputeApiData(from, to, dateOutward, timeOutward, true)
+	// always retrieve outward data
+	outwardData := ComputeApiData(from, to, dateOutward, timeOutward, true)
 	// check roundTrip to retrieve return data
 	var returnData [][]model.Segment
 	if roundTrip {
@@ -91,8 +91,8 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 
 	// build response
 	response := ApiData{
-		Outbound: outboundData,
-		Return:   returnData,
+		OutwardOptions: outwardData,
+		ReturnOptions:  returnData,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
@@ -103,7 +103,7 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ComputeApiData(from, to string, date, t time.Time, isOutbound bool) [][]model.Segment {
+func ComputeApiData(from, to string, date, t time.Time, isOutward bool) [][]model.Segment {
 	var apiData [][]model.Segment
 
 	// time + 1 hour
@@ -119,30 +119,30 @@ func ComputeApiData(from, to string, date, t time.Time, isOutbound bool) [][]mod
 	time2.Add(time.Hour * 4)
 
 	// bike data
-	directionsBike, err := externals.GetDirectionsBike(from, to, date, t, isOutbound)
+	directionsBike, err := externals.GetDirectionsBike(from, to, date, t, isOutward)
 	if err == nil && directionsBike != nil {
 		apiData = append(apiData, directionsBike)
 	}
 
 	// car data
-	directionsCar, err := externals.GetDirectionsCar(from, to, date, t, isOutbound)
+	directionsCar, err := externals.GetDirectionsCar(from, to, date, t, isOutward)
 	if err == nil && directionsCar != nil {
 		apiData = append(apiData, directionsCar)
 	}
 
 	// train data right time
-	directionsTrain, err := externals.GetDirectionsTrain(from, to, date, t, isOutbound)
+	directionsTrain, err := externals.GetDirectionsTrain(from, to, date, t, isOutward)
 	if err == nil && directionsTrain != nil {
 		apiData = append(apiData, directionsTrain)
 	}
 	// train data increased time +1 hour
-	directionsTrain1, err := externals.GetDirectionsTrain(from, to, date1, time1, isOutbound)
+	directionsTrain1, err := externals.GetDirectionsTrain(from, to, date1, time1, isOutward)
 	if err == nil && directionsTrain1 != nil &&
 		differentDirections(directionsTrain, directionsTrain1) {
 		apiData = append(apiData, directionsTrain1)
 	}
 	// train data increased time +2 hours
-	directionsTrain2, err := externals.GetDirectionsTrain(from, to, date2, time2, isOutbound)
+	directionsTrain2, err := externals.GetDirectionsTrain(from, to, date2, time2, isOutward)
 	if err == nil && directionsTrain2 != nil &&
 		differentDirections(directionsTrain, directionsTrain2) &&
 		differentDirections(directionsTrain1, directionsTrain2) {
@@ -150,18 +150,18 @@ func ComputeApiData(from, to string, date, t time.Time, isOutbound bool) [][]mod
 	}
 
 	// bus data right time
-	directionsBus, err := externals.GetDirectionsBus(from, to, date, t, isOutbound)
+	directionsBus, err := externals.GetDirectionsBus(from, to, date, t, isOutward)
 	if err == nil && directionsBus != nil {
 		apiData = append(apiData, directionsBus)
 	}
 	// bus data increased time +1 hour
-	directionsBus1, err := externals.GetDirectionsBus(from, to, date1, time1, isOutbound)
+	directionsBus1, err := externals.GetDirectionsBus(from, to, date1, time1, isOutward)
 	if err == nil && directionsBus1 != nil &&
 		differentDirections(directionsBus, directionsBus1) {
 		apiData = append(apiData, directionsBus1)
 	}
 	// bus data increased time +2 hours
-	directionsBus2, err := externals.GetDirectionsBus(from, to, date2, time2, isOutbound)
+	directionsBus2, err := externals.GetDirectionsBus(from, to, date2, time2, isOutward)
 	if err == nil && directionsBus2 != nil &&
 		differentDirections(directionsBus, directionsBus2) &&
 		differentDirections(directionsBus1, directionsBus2) {
@@ -169,7 +169,7 @@ func ComputeApiData(from, to string, date, t time.Time, isOutbound bool) [][]mod
 	}
 
 	// plane data
-	directionsPlane, err := externals.GetFlights(from, to, date, isOutbound)
+	directionsPlane, err := externals.GetFlights(from, to, date, isOutward)
 	if err == nil && directionsPlane != nil {
 		for i := range directionsPlane {
 			if directionsPlane[i] != nil {
@@ -204,7 +204,7 @@ func differentDirections(d1, d2 []model.Segment) bool {
 			s1.CO2Emitted != s2.CO2Emitted ||
 			s1.Distance != s2.Distance ||
 			s1.NumSegment != s2.NumSegment ||
-			s1.IsOutbound != s2.IsOutbound {
+			s1.IsOutward != s2.IsOutward {
 			return true
 		}
 	}

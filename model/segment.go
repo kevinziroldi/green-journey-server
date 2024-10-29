@@ -15,7 +15,7 @@ type Segment struct {
 	CO2Emitted  float64       `gorm:"column:co2_emitted;type:numeric;not null" json:"co2_emitted"`
 	Distance    float64       `gorm:"column:distance;type:numeric;not null" json:"distance"`
 	NumSegment  int           `gorm:"column:num_segment;type:integer;not null" json:"num_segment"`
-	IsOutbound  bool          `gorm:"column:is_outbound;type:boolean;not null" json:"is_outbound"`
+	IsOutward   bool          `gorm:"column:is_outbound;type:boolean;not null" json:"is_outward"`
 	TravelID    int           `gorm:"column:id_travel;type:integer;not null;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"travel_id"`
 }
 

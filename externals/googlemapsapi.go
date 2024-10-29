@@ -217,7 +217,7 @@ func GetDirectionsBike(departure, destination string, date time.Time, hour time.
 		CO2Emitted:  0,
 		Distance:    float64(distance),
 		NumSegment:  1,
-		IsOutbound:  isOutbound,
+		IsOutward:   isOutbound,
 		TravelID:    -1,
 	}
 
@@ -304,7 +304,7 @@ func GetDirectionsCar(departure, destination string, date time.Time, hour time.T
 		CO2Emitted:  internals.ComputeCarEmission(distance),
 		Distance:    float64(response.Rows[0].Elements[0].Distance.Value) / 1000,
 		NumSegment:  1,
-		IsOutbound:  isOutbound,
+		IsOutward:   isOutbound,
 		TravelID:    -1,
 	}
 
@@ -474,7 +474,7 @@ func decodeDirectionsTransit(body []byte, transitMode string, isOutbound bool) (
 				Distance:    distance,
 				CO2Emitted:  0,
 				NumSegment:  numSegment,
-				IsOutbound:  isOutbound,
+				IsOutward:   isOutbound,
 				// travel id set later
 			}
 		} else {
@@ -541,7 +541,7 @@ func decodeDirectionsTransit(body []byte, transitMode string, isOutbound bool) (
 				Distance:    distance,
 				CO2Emitted:  co2Emitted,
 				NumSegment:  numSegment,
-				IsOutbound:  isOutbound,
+				IsOutward:   isOutbound,
 				// travel id set later
 			}
 		}
