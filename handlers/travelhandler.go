@@ -106,17 +106,19 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 func ComputeApiData(from, to string, date, t time.Time, isOutward bool) [][]model.Segment {
 	var apiData [][]model.Segment
 
-	// time + 1 hour
-	date1 := date
-	time1 := t
-	date1.Add(time.Hour * 2)
-	time1.Add(time.Hour * 2)
+	/*
+		// time + 1 hour
+		date1 := date
+		time1 := t
+		date1.Add(time.Hour * 2)
+		time1.Add(time.Hour * 2)
 
-	// time + 2 hour
-	date2 := date
-	time2 := t
-	date2.Add(time.Hour * 4)
-	time2.Add(time.Hour * 4)
+		// time + 2 hour
+		date2 := date
+		time2 := t
+		date2.Add(time.Hour * 4)
+		time2.Add(time.Hour * 4)
+	*/
 
 	// bike data
 	directionsBike, err := externals.GetDirectionsBike(from, to, date, t, isOutward)
@@ -135,38 +137,42 @@ func ComputeApiData(from, to string, date, t time.Time, isOutward bool) [][]mode
 	if err == nil && directionsTrain != nil {
 		apiData = append(apiData, directionsTrain)
 	}
-	// train data increased time +1 hour
-	directionsTrain1, err := externals.GetDirectionsTrain(from, to, date1, time1, isOutward)
-	if err == nil && directionsTrain1 != nil &&
-		differentDirections(directionsTrain, directionsTrain1) {
-		apiData = append(apiData, directionsTrain1)
-	}
-	// train data increased time +2 hours
-	directionsTrain2, err := externals.GetDirectionsTrain(from, to, date2, time2, isOutward)
-	if err == nil && directionsTrain2 != nil &&
-		differentDirections(directionsTrain, directionsTrain2) &&
-		differentDirections(directionsTrain1, directionsTrain2) {
-		apiData = append(apiData, directionsTrain2)
-	}
+	/*
+		// train data increased time +1 hour
+		directionsTrain1, err := externals.GetDirectionsTrain(from, to, date1, time1, isOutward)
+		if err == nil && directionsTrain1 != nil &&
+			differentDirections(directionsTrain, directionsTrain1) {
+			apiData = append(apiData, directionsTrain1)
+		}
+		// train data increased time +2 hours
+		directionsTrain2, err := externals.GetDirectionsTrain(from, to, date2, time2, isOutward)
+		if err == nil && directionsTrain2 != nil &&
+			differentDirections(directionsTrain, directionsTrain2) &&
+			differentDirections(directionsTrain1, directionsTrain2) {
+			apiData = append(apiData, directionsTrain2)
+	*/
 
 	// bus data right time
 	directionsBus, err := externals.GetDirectionsBus(from, to, date, t, isOutward)
 	if err == nil && directionsBus != nil {
 		apiData = append(apiData, directionsBus)
 	}
-	// bus data increased time +1 hour
-	directionsBus1, err := externals.GetDirectionsBus(from, to, date1, time1, isOutward)
-	if err == nil && directionsBus1 != nil &&
-		differentDirections(directionsBus, directionsBus1) {
-		apiData = append(apiData, directionsBus1)
-	}
-	// bus data increased time +2 hours
-	directionsBus2, err := externals.GetDirectionsBus(from, to, date2, time2, isOutward)
-	if err == nil && directionsBus2 != nil &&
-		differentDirections(directionsBus, directionsBus2) &&
-		differentDirections(directionsBus1, directionsBus2) {
-		apiData = append(apiData, directionsBus2)
-	}
+
+	/*
+		// bus data increased time +1 hour
+		directionsBus1, err := externals.GetDirectionsBus(from, to, date1, time1, isOutward)
+		if err == nil && directionsBus1 != nil &&
+			differentDirections(directionsBus, directionsBus1) {
+			apiData = append(apiData, directionsBus1)
+		}
+		// bus data increased time +2 hours
+		directionsBus2, err := externals.GetDirectionsBus(from, to, date2, time2, isOutward)
+		if err == nil && directionsBus2 != nil &&
+			differentDirections(directionsBus, directionsBus2) &&
+			differentDirections(directionsBus1, directionsBus2) {
+			apiData = append(apiData, directionsBus2)
+		}
+	*/
 
 	// plane data
 	directionsPlane, err := externals.GetFlights(from, to, date, isOutward)
