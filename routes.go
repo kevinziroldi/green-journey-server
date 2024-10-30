@@ -16,10 +16,10 @@ func SetupRoutes() {
 	http.HandleFunc("/travels/user", handlers.HandleTravelsUser)
 	http.HandleFunc("travels/user/", handlers.HandleModifyTravel)
 
-	fmt.Println("Server starting on port 8080")
+	fmt.Println("Server starting on port 80")
 
 	// start server
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		// fatal condition
 		log.Fatalf("Failed to start the server")
