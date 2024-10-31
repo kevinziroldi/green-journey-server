@@ -39,6 +39,55 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing arrival city value", http.StatusBadRequest)
 		return
 	}
+	fromLatitudeStr := r.URL.Query().Get("fromLatitude")
+	if fromLatitudeStr == "" {
+		log.Println("Missing departure city latitude value")
+		http.Error(w, "Missing departure city latitude value", http.StatusBadRequest)
+		return
+	}
+	fromLatitude, err := strconv.ParseFloat(fromLatitudeStr, 64)
+	if err != nil {
+		log.Println("Invalid departure city latitude value:", err)
+		http.Error(w, "Invalid departure city latitude value", http.StatusBadRequest)
+		return
+	}
+	fromLongitudeStr := r.URL.Query().Get("fromLongitude")
+	if fromLongitudeStr == "" {
+		log.Println("Missing departure city longitude value")
+		http.Error(w, "Missing departure city longitude value", http.StatusBadRequest)
+		return
+	}
+	fromLongitude, err := strconv.ParseFloat(fromLongitudeStr, 64)
+	if err != nil {
+		log.Println("Invalid departure city longitude value:", err)
+		http.Error(w, "Invalid departure city longitude value", http.StatusBadRequest)
+		return
+	}
+	toLatitudeStr := r.URL.Query().Get("toLatitude")
+	if toLatitudeStr == "" {
+		log.Println("Missing arrival city latitude value")
+		http.Error(w, "Missing arrival city latitude value", http.StatusBadRequest)
+		return
+	}
+	toLatitude, err := strconv.ParseFloat(toLatitudeStr, 64)
+	if err != nil {
+		log.Println("Invalid departure city latitude value:", err)
+		http.Error(w, "Invalid departure city latitude value", http.StatusBadRequest)
+		return
+	}
+	toLongitudeStr := r.URL.Query().Get("toLongitude")
+	if toLongitudeStr == "" {
+		log.Println("Missing arrival city longitude value")
+		http.Error(w, "Missing arrival city longitude value", http.StatusBadRequest)
+		return
+	}
+	toLongitude, err := strconv.ParseFloat(toLongitudeStr, 64)
+	if err != nil {
+		log.Println("Invalid arrival city longitude value:", err)
+		http.Error(w, "Invalid arrival city longitude value", http.StatusBadRequest)
+		return
+	}
+
 	dateOutward, err := time.Parse("2006-01-02", r.URL.Query().Get("dateOutward"))
 	if err != nil {
 		log.Println("Wrong date format: ", err)
@@ -81,12 +130,12 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 
 	// call all apis and return data
 	// always retrieve outward data
-	outwardData := ComputeApiData(from, to, dateOutward, timeOutward, true)
+	outwardData := ComputeApiData(from, to, fromLatitude, fromLongitude, toLatitude, toLongitude, dateOutward, timeOutward, true)
 	// check roundTrip to retrieve return data
 	var returnData [][]model.Segment
 	if roundTrip {
 		// invert from and to
-		returnData = ComputeApiData(to, from, dateReturn, timeReturn, false)
+		returnData = ComputeApiData(from, to, fromLatitude, fromLongitude, toLatitude, toLongitude, dateReturn, timeReturn, false)
 	}
 
 	// build response
@@ -103,79 +152,34 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ComputeApiData(from, to string, date, t time.Time, isOutward bool) [][]model.Segment {
+func ComputeApiData(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date, t time.Time, isOutward bool) [][]model.Segment {
 	var apiData [][]model.Segment
-
-	/*
-		// time + 1 hour
-		date1 := date
-		time1 := t
-		date1.Add(time.Hour * 2)
-		time1.Add(time.Hour * 2)
-
-		// time + 2 hour
-		date2 := date
-		time2 := t
-		date2.Add(time.Hour * 4)
-		time2.Add(time.Hour * 4)
-	*/
-
 	// bike data
-	directionsBike, err := externals.GetDirectionsBike(from, to, date, t, isOutward)
+	directionsBike, err := externals.GetDirectionsBike(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
 	if err == nil && directionsBike != nil {
 		apiData = append(apiData, directionsBike)
 	}
 
 	// car data
-	directionsCar, err := externals.GetDirectionsCar(from, to, date, t, isOutward)
+	directionsCar, err := externals.GetDirectionsCar(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
 	if err == nil && directionsCar != nil {
 		apiData = append(apiData, directionsCar)
 	}
 
 	// train data right time
-	directionsTrain, err := externals.GetDirectionsTrain(from, to, date, t, isOutward)
+	directionsTrain, err := externals.GetDirectionsTrain(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
 	if err == nil && directionsTrain != nil {
 		apiData = append(apiData, directionsTrain)
 	}
-	/*
-		// train data increased time +1 hour
-		directionsTrain1, err := externals.GetDirectionsTrain(from, to, date1, time1, isOutward)
-		if err == nil && directionsTrain1 != nil &&
-			differentDirections(directionsTrain, directionsTrain1) {
-			apiData = append(apiData, directionsTrain1)
-		}
-		// train data increased time +2 hours
-		directionsTrain2, err := externals.GetDirectionsTrain(from, to, date2, time2, isOutward)
-		if err == nil && directionsTrain2 != nil &&
-			differentDirections(directionsTrain, directionsTrain2) &&
-			differentDirections(directionsTrain1, directionsTrain2) {
-			apiData = append(apiData, directionsTrain2)
-	*/
 
 	// bus data right time
-	directionsBus, err := externals.GetDirectionsBus(from, to, date, t, isOutward)
+	directionsBus, err := externals.GetDirectionsBus(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
 	if err == nil && directionsBus != nil {
 		apiData = append(apiData, directionsBus)
 	}
 
-	/*
-		// bus data increased time +1 hour
-		directionsBus1, err := externals.GetDirectionsBus(from, to, date1, time1, isOutward)
-		if err == nil && directionsBus1 != nil &&
-			differentDirections(directionsBus, directionsBus1) {
-			apiData = append(apiData, directionsBus1)
-		}
-		// bus data increased time +2 hours
-		directionsBus2, err := externals.GetDirectionsBus(from, to, date2, time2, isOutward)
-		if err == nil && directionsBus2 != nil &&
-			differentDirections(directionsBus, directionsBus2) &&
-			differentDirections(directionsBus1, directionsBus2) {
-			apiData = append(apiData, directionsBus2)
-		}
-	*/
-
 	// plane data
-	directionsPlane, err := externals.GetFlights(from, to, date, isOutward)
+	directionsPlane, err := externals.GetFlights(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, isOutward)
 	if err == nil && directionsPlane != nil {
 		for i := range directionsPlane {
 			if directionsPlane[i] != nil {

@@ -50,6 +50,7 @@ func (travelDAO *TravelDAO) CreateTravel(travelDetails model.TravelDetails) erro
 func (travelDAO *TravelDAO) GetTravelRequestsByUserId(userID int) ([]model.TravelDetails, error) {
 	var travels []model.Travel
 	var travelDetailsList []model.TravelDetails
+	cityDAO := NewCityDAO(GetDB())
 
 	// get travels
 	result := db.Where("id_user = ?", userID).Find(&travels)
@@ -60,9 +61,25 @@ func (travelDAO *TravelDAO) GetTravelRequestsByUserId(userID int) ([]model.Trave
 	// get segments for every travel
 	for _, travel := range travels {
 		var segments []model.Segment
+
+		// get segments
 		result = db.Where("id_travel = ?", travel.TravelID).Find(&segments)
 		if result.Error != nil {
 			return nil, result.Error
+		}
+
+		// add departure and destination to segments
+		for _, segment := range segments {
+			originCity, err := cityDAO.GetCityById(segment.DepartureId)
+			if err != nil {
+				return nil, err
+			}
+			destinationCity, err := cityDAO.GetCityById(segment.DestinationId)
+			if err != nil {
+				return nil, err
+			}
+			segment.Departure = originCity.CityName
+			segment.Destination = destinationCity.CityName
 		}
 
 		// add to travelRequests
