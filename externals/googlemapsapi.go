@@ -3,8 +3,10 @@ package externals
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/joho/godotenv"
+	"gorm.io/gorm"
 	"green-journey-server/db"
 	"green-journey-server/internals"
 	"green-journey-server/model"
@@ -709,6 +711,8 @@ func getOrCreateCityNoIata(name string, latitude, longitude float64) (model.City
 	city, err := cityDAO.GetCityByName(name)
 	if err == nil {
 		return city, nil
+	} else if err != gorm.ErrRecordNotFound {
+		return model.City{}, err
 	}
 
 	// check if a city with nearly same coordinates exists
@@ -716,6 +720,8 @@ func getOrCreateCityNoIata(name string, latitude, longitude float64) (model.City
 	city, err = cityDAO.GetCityByCoordinates(latitude, longitude, deltaCoordinates)
 	if err == nil {
 		return city, nil
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return model.City{}, err
 	}
 
 	// create a city without iata
