@@ -706,7 +706,7 @@ func GetCityNoIata(name string, latitude, longitude float64) (model.City, error)
 	city, err := cityDAO.GetCityByName(name)
 	if err == nil {
 		return city, nil
-	} else if err != gorm.ErrRecordNotFound {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return model.City{}, err
 	}
 

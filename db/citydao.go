@@ -108,3 +108,14 @@ func (cityDAO *CityDAO) UpdateCityById(cityID int, fields map[string]interface{}
 
 	return city, nil
 }
+
+func (cityDAO *CityDAO) GetAirportByIata(iata string) (model.Airport, error) {
+	var airport model.Airport
+
+	result := cityDAO.db.Where("airport_iata = ?", iata).First(&airport)
+	if result.Error != nil {
+		return model.Airport{}, result.Error
+	}
+
+	return airport, nil
+}
