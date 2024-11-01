@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"green-journey-server/db"
 	"green-journey-server/externals"
 	"green-journey-server/model"
@@ -331,30 +330,30 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 			segment.Vehicle != "train" &&
 			segment.Vehicle != "bus" &&
 			segment.Vehicle != "walk" {
-			fmt.Println("Invalid data")
+			log.Println("Invalid data")
 			http.Error(w, "Invalid vehicle type", http.StatusBadRequest)
 			return
 		}
 		if segment.Price < 0 {
-			fmt.Println("Invalid data")
+			log.Println("Invalid data")
 			http.Error(w, "Invalid price", http.StatusBadRequest)
 			return
 		}
 		// check co2 values
 		if segment.CO2Emitted < 0 {
-			fmt.Println("Invalid data")
+			log.Println("Invalid data")
 			http.Error(w, "Invalid CO2 emitted value", http.StatusBadRequest)
 			return
 		}
 		// check distance
 		if segment.Distance < 0 {
-			fmt.Println("Invalid data")
+			log.Println("Invalid data")
 			http.Error(w, "Invalid travel distance", http.StatusBadRequest)
 			return
 		}
 		// check num segment
 		if segment.NumSegment < 0 {
-			fmt.Println("Invalid data")
+			log.Println("Invalid data")
 			http.Error(w, "Invalid num segment", http.StatusBadRequest)
 			return
 		}
@@ -362,7 +361,7 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 		segmentNumbers = append(segmentNumbers, segment.NumSegment)
 		// check right travel id
 		if segment.TravelID != travelDetails.Travel.TravelID {
-			fmt.Println("Invalid travel id")
+			log.Println("Invalid travel id")
 			http.Error(w, "Invalid travel id", http.StatusBadRequest)
 			return
 		}
@@ -372,7 +371,7 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 	sort.Ints(segmentNumbers)
 	for i := 0; i < len(segmentNumbers); i++ {
 		if segmentNumbers[i] != i+1 {
-			fmt.Println("Invalid num segment")
+			log.Println("Invalid num segment")
 			http.Error(w, "Invalid num segment", http.StatusBadRequest)
 			return
 		}

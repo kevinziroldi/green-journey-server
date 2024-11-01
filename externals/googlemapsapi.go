@@ -154,12 +154,10 @@ func GetDirectionsBike(originName, destinationName string, originLatitude, origi
 	// get cities (with or without iata)
 	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude)
 	if err != nil {
-		fmt.Println("Error getting origin city: ", err)
 		return nil, err
 	}
 	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude)
 	if err != nil {
-		fmt.Println("Error getting destination city: ", err)
 		return nil, err
 	}
 
@@ -250,12 +248,10 @@ func GetDirectionsCar(originName, destinationName string, originLatitude, origin
 	// get cities (with or without iata)
 	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude)
 	if err != nil {
-		fmt.Println("Error getting origin city: ", err)
 		return nil, err
 	}
 	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude)
 	if err != nil {
-		fmt.Println("Error getting destination city: ", err)
 		return nil, err
 	}
 
@@ -351,12 +347,10 @@ func GetDirectionsTrain(originName, destinationName string, originLatitude, orig
 	// get cities (with or without iata)
 	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude)
 	if err != nil {
-		fmt.Println("Error getting origin city: ", err)
 		return nil, err
 	}
 	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude)
 	if err != nil {
-		fmt.Println("Error getting destination city: ", err)
 		return nil, err
 	}
 
@@ -417,12 +411,10 @@ func GetDirectionsBus(originName, destinationName string, originLatitude, origin
 	// get cities (with or without iata)
 	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude)
 	if err != nil {
-		fmt.Println("Error getting origin city: ", err)
 		return nil, err
 	}
 	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude)
 	if err != nil {
-		fmt.Println("Error getting destination city: ", err)
 		return nil, err
 	}
 

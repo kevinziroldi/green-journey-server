@@ -171,12 +171,10 @@ func GetFlights(originName, destinationName string, originLatitude, originLongit
 	// get cities
 	originCity, err := GetCityWithIata(originName, originLatitude, originLongitude)
 	if err != nil {
-		fmt.Println("Error getting origin city: ", err)
 		return nil, err
 	}
 	destinationCity, err := GetCityWithIata(destinationName, destinationLatitude, destinationLongitude)
 	if err != nil {
-		fmt.Println("Error getting destination city: ", err)
 		return nil, err
 	}
 
@@ -199,14 +197,12 @@ func GetFlights(originName, destinationName string, originLatitude, originLongit
 	// create request
 	req, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
-		fmt.Println("Error creating request: ", err)
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error creating request: ", err)
 		return nil, err
 	}
 	defer func() {
@@ -229,13 +225,11 @@ func GetFlights(originName, destinationName string, originLatitude, originLongit
 		var req2 *http.Request
 		req2, err = http.NewRequest("GET", apiUrl, nil)
 		if err != nil {
-			fmt.Println("Error creating request: ", err)
 			return nil, err
 		}
 		req2.Header.Set("Authorization", "Bearer "+accessToken)
 		resp, err = client.Do(req)
 		if err != nil {
-			fmt.Println("Error creating request: ", err)
 			return nil, err
 		}
 		defer func() {
@@ -252,11 +246,8 @@ func GetFlights(originName, destinationName string, originLatitude, originLongit
 	// check response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading body: ", err)
 		return nil, err
 	}
-
-	fmt.Println("BODY: ", string(body))
 
 	// check response status code
 	if resp.StatusCode != http.StatusOK {
@@ -550,8 +541,6 @@ func MakeAirportCityCall(keyword string) error {
 		return err
 	}
 
-	fmt.Println(string(body))
-
 	var locationResponse LocationResponse
 	err = json.Unmarshal(body, &locationResponse)
 	if err != nil {
@@ -636,7 +625,7 @@ func MakeAirportCityCall(keyword string) error {
 			// check corresponding city exists in db with same country
 			cityName := capitalizeFirstLetter(element.Address.CityName)
 			countryName := capitalizeFirstLetter(*element.Address.CountryName)
-			countryCode := capitalizeFirstLetter(*element.Address.CountryCode)
+			countryCode := *element.Address.CountryCode
 			dbCity, err1 := cityDAO.GetCityByName(cityName)
 			if err1 != nil || *dbCity.CountryName != countryName || *dbCity.CountryCode != countryCode {
 				// skip only one airport
