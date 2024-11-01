@@ -69,13 +69,13 @@ type Route struct {
 }
 
 type Leg struct {
-	Distance      *Distance `json:"distance"`
-	Duration      *Duration `json:"duration"`
-	StartAddress  string    `json:"start_address"`
-	EndAddress    string    `json:"end_address"`
-	StartLocation *Location `json:"start_location"`
-	EndLocation   *Location `json:"end_location"`
-	Steps         []Step    `json:"steps"`
+	Distance      *Distance           `json:"distance"`
+	Duration      *Duration           `json:"duration"`
+	StartAddress  string              `json:"start_address"`
+	EndAddress    string              `json:"end_address"`
+	StartLocation *GoogleMapsLocation `json:"start_location"`
+	EndLocation   *GoogleMapsLocation `json:"end_location"`
+	Steps         []Step              `json:"steps"`
 }
 
 type Coordinates struct {
@@ -84,14 +84,14 @@ type Coordinates struct {
 }
 
 type Step struct {
-	Distance         *Distance       `json:"distance"`
-	Duration         *Duration       `json:"duration"`
-	TravelMode       string          `json:"travel_mode"`
-	StartLocation    *Location       `json:"start_location"`
-	EndLocation      *Location       `json:"end_location"`
-	Polyline         *Polyline       `json:"polyline"`
-	HtmlInstructions string          `json:"html_instructions"`
-	TransitDetails   *TransitDetails `json:"transit_details"`
+	Distance         *Distance           `json:"distance"`
+	Duration         *Duration           `json:"duration"`
+	TravelMode       string              `json:"travel_mode"`
+	StartLocation    *GoogleMapsLocation `json:"start_location"`
+	EndLocation      *GoogleMapsLocation `json:"end_location"`
+	Polyline         *Polyline           `json:"polyline"`
+	HtmlInstructions string              `json:"html_instructions"`
+	TransitDetails   *TransitDetails     `json:"transit_details"`
 }
 
 type Polyline struct {
@@ -109,8 +109,13 @@ type TransitDetails struct {
 }
 
 type Stop struct {
-	Location *Location `json:"location"`
-	Name     string    `json:"name"`
+	Location *GoogleMapsLocation `json:"location"`
+	Name     string              `json:"name"`
+}
+
+type GoogleMapsLocation struct {
+	Latitude  float64 `json:"lat"`
+	Longitude float64 `json:"lng"`
 }
 
 type Time struct {
@@ -545,12 +550,10 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 				step.TransitDetails.ArrivalStop == nil ||
 				step.TransitDetails.DepartureStop.Location == nil ||
 				step.TransitDetails.ArrivalStop.Location == nil ||
-				step.TransitDetails.DepartureStop.Location.GeoCode == nil ||
-				step.TransitDetails.ArrivalStop.Location.GeoCode == nil ||
 				step.Distance == nil ||
 				step.Duration == nil {
-				log.Println("Missing data in the response")
-				return nil, fmt.Errorf("missing data in response")
+				log.Println("Missing data in the response ------- FOR A STEP")
+				return nil, fmt.Errorf("missing data in response ------- FOR A STEP")
 			}
 
 			// check segment travel mode
@@ -579,11 +582,11 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 			returnedTime := time.Unix(step.TransitDetails.DepartureTime.Value, 0)
 			distance := float64(step.Distance.Value) / 1000
 
-			stepDepCity, err1 := getOrCreateCityNoIata(step.TransitDetails.DepartureStop.Name, step.TransitDetails.DepartureStop.Location.GeoCode.Latitude, step.TransitDetails.DepartureStop.Location.GeoCode.Longitude)
+			stepDepCity, err1 := getOrCreateCityNoIata(step.TransitDetails.DepartureStop.Name, step.TransitDetails.DepartureStop.Location.Latitude, step.TransitDetails.DepartureStop.Location.Longitude)
 			if err1 != nil {
 				return nil, err1
 			}
-			stepDestCity, err1 := getOrCreateCityNoIata(step.TransitDetails.ArrivalStop.Name, step.TransitDetails.ArrivalStop.Location.GeoCode.Latitude, step.TransitDetails.ArrivalStop.Location.GeoCode.Longitude)
+			stepDestCity, err1 := getOrCreateCityNoIata(step.TransitDetails.ArrivalStop.Name, step.TransitDetails.ArrivalStop.Location.Latitude, step.TransitDetails.ArrivalStop.Location.Longitude)
 			if err1 != nil {
 				return nil, err1
 			}

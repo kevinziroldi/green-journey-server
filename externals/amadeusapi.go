@@ -92,10 +92,10 @@ type Airport struct {
 }
 
 type LocationResponse struct {
-	Data []Location `json:"data"`
+	Data []AmadeusLocation `json:"data"`
 }
 
-type Location struct {
+type AmadeusLocation struct {
 	Name     string   `json:"name"`
 	IataCode *string  `json:"iataCode"`
 	SubType  string   `json:"subType"`
@@ -168,10 +168,6 @@ func GetAccessToken() error {
 }
 
 func GetFlights(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date time.Time, isOutbound bool) ([][]model.Segment, error) {
-
-	// amadeus flight offers search url
-	baseUrl := "https://test.api.amadeus.com/v2/shopping/flight-offers"
-
 	// get cities
 	originCity, err := getOrCreateCityWithIata(originName, originLatitude, originLongitude)
 	if err != nil {
@@ -183,6 +179,9 @@ func GetFlights(originName, destinationName string, originLatitude, originLongit
 		fmt.Println("Error getting destination city: ", err)
 		return nil, err
 	}
+
+	// amadeus flight offers search url
+	baseUrl := "https://test.api.amadeus.com/v2/shopping/flight-offers"
 
 	// compute departure-time value
 	departureDate := date.Format("2006-01-02")
@@ -256,6 +255,8 @@ func GetFlights(originName, destinationName string, originLatitude, originLongit
 		fmt.Println("Error reading body: ", err)
 		return nil, err
 	}
+
+	fmt.Println("BODY: ", string(body))
 
 	// check response status code
 	if resp.StatusCode != http.StatusOK {
@@ -465,6 +466,8 @@ func getOrCreateCityWithIata(name string, latitude, longitude float64) (model.Ci
 			"country_name": city.CountryName,
 			"country_code": city.CountryCode,
 			"iata":         city.Iata,
+			"latitude":     city.Latitude,
+			"longitude":    city.Longitude,
 		}
 		city, err = cityDAO.UpdateCityById(idCityWithoutIata, fieldsToUpdate)
 		if err != nil {

@@ -155,16 +155,18 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 func ComputeApiData(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date, t time.Time, isOutward bool) [][]model.Segment {
 	var apiData [][]model.Segment
 
-	// plane data
-	// must be first, because it needs api data
-	directionsPlane, err := externals.GetFlights(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, isOutward)
-	if err == nil && directionsPlane != nil {
-		for i := range directionsPlane {
-			if directionsPlane[i] != nil {
-				apiData = append(apiData, directionsPlane[i])
+	/*
+		// plane data
+		// must be first, because it needs api data
+		directionsPlane, err := externals.GetFlights(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, isOutward)
+		if err == nil && directionsPlane != nil {
+			for i := range directionsPlane {
+				if directionsPlane[i] != nil {
+					apiData = append(apiData, directionsPlane[i])
+				}
 			}
 		}
-	}
+	*/
 
 	/*
 		// bike data
@@ -179,20 +181,19 @@ func ComputeApiData(originName, destinationName string, originLatitude, originLo
 			apiData = append(apiData, directionsCar)
 		}
 
-		// train data
-		directionsTrain, err := externals.GetDirectionsTrain(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
-		if err == nil && directionsTrain != nil {
-			apiData = append(apiData, directionsTrain)
-		}
-
-		// bus data
-		directionsBus, err := externals.GetDirectionsBus(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
-		if err == nil && directionsBus != nil {
-			apiData = append(apiData, directionsBus)
-		}
 	*/
 
-	fmt.Println("API DATA READY: ", apiData)
+	// train data
+	directionsTrain, err := externals.GetDirectionsTrain(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
+	if err == nil && directionsTrain != nil {
+		apiData = append(apiData, directionsTrain)
+	}
+
+	// bus data
+	directionsBus, err := externals.GetDirectionsBus(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
+	if err == nil && directionsBus != nil {
+		apiData = append(apiData, directionsBus)
+	}
 
 	return apiData
 }
