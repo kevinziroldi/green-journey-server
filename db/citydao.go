@@ -20,6 +20,12 @@ func (cityDAO *CityDAO) CreateCity(city *model.City) error {
 	return result.Error
 }
 
+func (cityDAO *CityDAO) CreateAirport(airport *model.Airport) error {
+	// takes a pointer, in order to update the param struct
+	result := db.Create(airport)
+	return result.Error
+}
+
 func (cityDAO *CityDAO) GetCityById(cityID int) (model.City, error) {
 	var city model.City
 	result := cityDAO.db.First(&city, cityID)
@@ -59,12 +65,26 @@ func (cityDAO *CityDAO) GetCityByCoordinates(latitude, longitude, delta float64)
 	return city, nil
 }
 
-func (cityDAO *CityDAO) GetCityByIata(iata string) (model.City, error) {
+func (cityDAO *CityDAO) GetCityByCityIata(cityIata string) (model.City, error) {
 	var city model.City
 
-	result := cityDAO.db.Where("iata = ?", iata).First(&city)
+	result := cityDAO.db.Where("city_iata = ?", cityIata).First(&city)
 	if result.Error != nil {
 		return model.City{}, result.Error
+	}
+
+	return city, nil
+}
+
+func (cityDAO *CityDAO) GetCityByAirportIata(airportIata string) (model.City, error) {
+	var city model.City
+
+	err := cityDAO.db.Joins("JOIN airport ON airport.id_city = city.id_city").
+		Where("airport.airport_iata = ?", airportIata).
+		First(&city).Error
+
+	if err != nil {
+		return model.City{}, err
 	}
 
 	return city, nil

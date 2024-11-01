@@ -152,12 +152,12 @@ func InitGoogleMapsApi() {
 
 func GetDirectionsBike(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date time.Time, hour time.Time, isOutbound bool) ([]model.Segment, error) {
 	// get cities (with or without iata)
-	originCity, err := getOrCreateCityNoIata(originName, originLatitude, originLongitude)
+	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude)
 	if err != nil {
 		fmt.Println("Error getting origin city: ", err)
 		return nil, err
 	}
-	destinationCity, err := getOrCreateCityNoIata(destinationName, destinationLatitude, destinationLongitude)
+	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude)
 	if err != nil {
 		fmt.Println("Error getting destination city: ", err)
 		return nil, err
@@ -248,12 +248,12 @@ func GetDirectionsBike(originName, destinationName string, originLatitude, origi
 
 func GetDirectionsCar(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date time.Time, hour time.Time, isOutbound bool) ([]model.Segment, error) {
 	// get cities (with or without iata)
-	originCity, err := getOrCreateCityNoIata(originName, originLatitude, originLongitude)
+	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude)
 	if err != nil {
 		fmt.Println("Error getting origin city: ", err)
 		return nil, err
 	}
-	destinationCity, err := getOrCreateCityNoIata(destinationName, destinationLatitude, destinationLongitude)
+	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude)
 	if err != nil {
 		fmt.Println("Error getting destination city: ", err)
 		return nil, err
@@ -349,12 +349,12 @@ func GetDirectionsCar(originName, destinationName string, originLatitude, origin
 
 func GetDirectionsTrain(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date, hour time.Time, isOutbound bool) ([]model.Segment, error) {
 	// get cities (with or without iata)
-	originCity, err := getOrCreateCityNoIata(originName, originLatitude, originLongitude)
+	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude)
 	if err != nil {
 		fmt.Println("Error getting origin city: ", err)
 		return nil, err
 	}
-	destinationCity, err := getOrCreateCityNoIata(destinationName, destinationLatitude, destinationLongitude)
+	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude)
 	if err != nil {
 		fmt.Println("Error getting destination city: ", err)
 		return nil, err
@@ -415,12 +415,12 @@ func GetDirectionsTrain(originName, destinationName string, originLatitude, orig
 
 func GetDirectionsBus(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date, hour time.Time, isOutbound bool) ([]model.Segment, error) {
 	// get cities (with or without iata)
-	originCity, err := getOrCreateCityNoIata(originName, originLatitude, originLongitude)
+	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude)
 	if err != nil {
 		fmt.Println("Error getting origin city: ", err)
 		return nil, err
 	}
-	destinationCity, err := getOrCreateCityNoIata(destinationName, destinationLatitude, destinationLongitude)
+	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude)
 	if err != nil {
 		fmt.Println("Error getting destination city: ", err)
 		return nil, err
@@ -582,11 +582,11 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 			returnedTime := time.Unix(step.TransitDetails.DepartureTime.Value, 0)
 			distance := float64(step.Distance.Value) / 1000
 
-			stepDepCity, err1 := getOrCreateCityNoIata(step.TransitDetails.DepartureStop.Name, step.TransitDetails.DepartureStop.Location.Latitude, step.TransitDetails.DepartureStop.Location.Longitude)
+			stepDepCity, err1 := GetCityNoIata(step.TransitDetails.DepartureStop.Name, step.TransitDetails.DepartureStop.Location.Latitude, step.TransitDetails.DepartureStop.Location.Longitude)
 			if err1 != nil {
 				return nil, err1
 			}
-			stepDestCity, err1 := getOrCreateCityNoIata(step.TransitDetails.ArrivalStop.Name, step.TransitDetails.ArrivalStop.Location.Latitude, step.TransitDetails.ArrivalStop.Location.Longitude)
+			stepDestCity, err1 := GetCityNoIata(step.TransitDetails.ArrivalStop.Name, step.TransitDetails.ArrivalStop.Location.Latitude, step.TransitDetails.ArrivalStop.Location.Longitude)
 			if err1 != nil {
 				return nil, err1
 			}
@@ -707,7 +707,7 @@ func setDepDestWalkingSegments(segments []model.Segment, originCity, destination
 	return segments
 }
 
-func getOrCreateCityNoIata(name string, latitude, longitude float64) (model.City, error) {
+func GetCityNoIata(name string, latitude, longitude float64) (model.City, error) {
 	cityDAO := db.NewCityDAO(db.GetDB())
 
 	// check if a city with same name exists
