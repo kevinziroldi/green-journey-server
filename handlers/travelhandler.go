@@ -245,7 +245,6 @@ func getTravelsByUserId(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func createTravel(w http.ResponseWriter, r *http.Request) {

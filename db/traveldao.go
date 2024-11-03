@@ -69,17 +69,18 @@ func (travelDAO *TravelDAO) GetTravelRequestsByUserId(userID int) ([]model.Trave
 		}
 
 		// add departure and destination to segments
-		for _, segment := range segments {
-			originCity, err := cityDAO.GetCityById(segment.DepartureId)
+		for i, _ := range segments {
+			originCity, err := cityDAO.GetCityById(segments[i].DepartureId)
 			if err != nil {
 				return nil, err
 			}
-			destinationCity, err := cityDAO.GetCityById(segment.DestinationId)
+			destinationCity, err := cityDAO.GetCityById(segments[i].DestinationId)
 			if err != nil {
 				return nil, err
 			}
-			segment.Departure = originCity.CityName
-			segment.Destination = destinationCity.CityName
+
+			segments[i].Departure = originCity.CityName
+			segments[i].Destination = destinationCity.CityName
 		}
 
 		// add to travelRequests
