@@ -14,8 +14,7 @@ import (
 )
 
 type ApiData struct {
-	OutwardOptions [][]model.Segment `json:"outward_options"`
-	ReturnOptions  [][]model.Segment `json:"return_options"`
+	Options [][]model.Segment `json:"options"`
 }
 
 func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
@@ -86,61 +85,38 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid arrival city longitude value", http.StatusBadRequest)
 		return
 	}
-
-	dateOutward, err := time.Parse("2006-01-02", r.URL.Query().Get("dateOutward"))
+	departureDate, err := time.Parse("2006-01-02", r.URL.Query().Get("date"))
 	if err != nil {
 		log.Println("Wrong date format: ", err)
 		http.Error(w, "Wrong date format", http.StatusBadRequest)
 		return
 	}
-	timeOutward, err := time.Parse("15:04", r.URL.Query().Get("timeOutward"))
+	departureTime, err := time.Parse("15:04", r.URL.Query().Get("time"))
 	if err != nil {
 		log.Println("Wrong time format: ", err)
 		http.Error(w, "Wrong time format", http.StatusBadRequest)
 		return
 	}
-	roundTripString := r.URL.Query().Get("round_trip")
-	var roundTrip bool
-	switch roundTripString {
-	case "true":
-		roundTrip = true
-	case "false":
-		roundTrip = false
-	default:
-		log.Println("Wrong round trip value")
-		http.Error(w, "Wrong round trip value", http.StatusBadRequest)
+	isOutwardStr := r.URL.Query().Get("isOutward")
+	if isOutwardStr == "" {
+		log.Println("Missing departure city value")
+		http.Error(w, "Missing departure city value", http.StatusBadRequest)
 		return
 	}
-	var dateReturn, timeReturn time.Time
-	if roundTrip {
-		dateReturn, err = time.Parse("2006-01-02", r.URL.Query().Get("dateReturn"))
-		if err != nil {
-			log.Println("Wrong date format: ", err)
-			http.Error(w, "Wrong date format", http.StatusBadRequest)
-			return
-		}
-		timeReturn, err = time.Parse("15:04", r.URL.Query().Get("timeReturn"))
-		if err != nil {
-			log.Println("Wrong time format: ", err)
-			http.Error(w, "Wrong time format", http.StatusBadRequest)
-			return
-		}
+	isOutward, err := strconv.ParseBool(r.URL.Query().Get("isOutward"))
+	if err != nil {
+		log.Println("Wrong isOutward format: ", err)
+		http.Error(w, "Wrong isOutward format", http.StatusBadRequest)
+		return
 	}
 
 	// call all apis and return data
 	// always retrieve outward data
-	outwardData := ComputeApiData(from, to, fromLatitude, fromLongitude, toLatitude, toLongitude, dateOutward, timeOutward, true)
-	// check roundTrip to retrieve return data
-	var returnData [][]model.Segment
-	if roundTrip {
-		// invert from and to
-		returnData = ComputeApiData(from, to, fromLatitude, fromLongitude, toLatitude, toLongitude, dateReturn, timeReturn, false)
-	}
+	data := ComputeApiData(from, to, fromLatitude, fromLongitude, toLatitude, toLongitude, departureDate, departureTime, isOutward)
 
 	// build response
 	response := ApiData{
-		OutwardOptions: outwardData,
-		ReturnOptions:  returnData,
+		Options: data,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
