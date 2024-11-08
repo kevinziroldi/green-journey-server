@@ -14,7 +14,7 @@ import (
 func HandleUsers(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		getUserById(w, r)
+		getUserByFirebaseUID(w, r)
 	case "POST":
 		addUser(w, r)
 	default:
@@ -23,32 +23,24 @@ func HandleUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getUserById(w http.ResponseWriter, r *http.Request) {
+func getUserByFirebaseUID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		log.Println("Method not supported")
 		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
 		return
 	}
 
-	idStr := r.URL.Query().Get("id")
+	uid := r.URL.Query().Get("uid")
 
 	// check id present
-	if idStr == "" {
-		log.Println("User id is missing")
+	if uid == "" {
+		log.Println("Firebase uid is missing")
 		http.Error(w, "User id is required", http.StatusBadRequest)
-		return
-	}
-	// check id format
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id <= 0 {
-		log.Println("User id is not valid")
-		http.Error(w, "The provided id is not valid", http.StatusBadRequest)
 		return
 	}
 
 	userDAO := db.NewUserDAO(db.GetDB())
-
-	user, err := userDAO.GetUserById(id)
+	user, err := userDAO.GetUserByFirebaseUID(uid)
 	if err != nil {
 		log.Println("User not found: ", err)
 		http.Error(w, "User could not be found", http.StatusNotFound)
