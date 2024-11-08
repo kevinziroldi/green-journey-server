@@ -37,7 +37,7 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing arrival city value", http.StatusBadRequest)
 		return
 	}
-	fromLatitudeStr := r.URL.Query().Get("fromLatitude")
+	fromLatitudeStr := r.URL.Query().Get("from_latitude")
 	if fromLatitudeStr == "" {
 		log.Println("Missing departure city latitude value")
 		http.Error(w, "Missing departure city latitude value", http.StatusBadRequest)
@@ -49,7 +49,7 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid departure city latitude value", http.StatusBadRequest)
 		return
 	}
-	fromLongitudeStr := r.URL.Query().Get("fromLongitude")
+	fromLongitudeStr := r.URL.Query().Get("from_longitude")
 	if fromLongitudeStr == "" {
 		log.Println("Missing departure city longitude value")
 		http.Error(w, "Missing departure city longitude value", http.StatusBadRequest)
@@ -61,7 +61,7 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid departure city longitude value", http.StatusBadRequest)
 		return
 	}
-	toLatitudeStr := r.URL.Query().Get("toLatitude")
+	toLatitudeStr := r.URL.Query().Get("to_latitude")
 	if toLatitudeStr == "" {
 		log.Println("Missing arrival city latitude value")
 		http.Error(w, "Missing arrival city latitude value", http.StatusBadRequest)
@@ -73,7 +73,7 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid departure city latitude value", http.StatusBadRequest)
 		return
 	}
-	toLongitudeStr := r.URL.Query().Get("toLongitude")
+	toLongitudeStr := r.URL.Query().Get("to_longitude")
 	if toLongitudeStr == "" {
 		log.Println("Missing arrival city longitude value")
 		http.Error(w, "Missing arrival city longitude value", http.StatusBadRequest)
@@ -103,7 +103,7 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing departure city value", http.StatusBadRequest)
 		return
 	}
-	isOutward, err := strconv.ParseBool(r.URL.Query().Get("isOutward"))
+	isOutward, err := strconv.ParseBool(r.URL.Query().Get("is_outward"))
 	if err != nil {
 		log.Println("Wrong isOutward format: ", err)
 		http.Error(w, "Wrong isOutward format", http.StatusBadRequest)
