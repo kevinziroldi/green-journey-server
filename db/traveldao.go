@@ -29,10 +29,10 @@ func (travelDAO *TravelDAO) CreateTravel(travelDetails model.TravelDetails) erro
 	}
 
 	// create segment entries
-	for _, request := range travelDetails.Segments {
+	for _, segment := range travelDetails.Segments {
 		// set travelID to all segments
-		request.TravelID = travelDetails.Travel.TravelID
-		result = transaction.Create(&request)
+		segment.TravelID = travelDetails.Travel.TravelID
+		result = transaction.Create(&segment)
 		if result.Error != nil {
 			transaction.Rollback()
 			return result.Error

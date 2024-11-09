@@ -7,13 +7,12 @@ import (
 	"green-journey-server/model"
 	"log"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type ApiData struct {
+type TravelOptions struct {
 	Options [][]model.Segment `json:"options"`
 }
 
@@ -112,11 +111,11 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 
 	// call all apis and return data
 	// always retrieve outward data
-	data := ComputeApiData(from, to, fromLatitude, fromLongitude, toLatitude, toLongitude, departureDate, departureTime, isOutward)
+	travelOptions := ComputeApiData(from, to, fromLatitude, fromLongitude, toLatitude, toLongitude, departureDate, departureTime, isOutward)
 
 	// build response
-	response := ApiData{
-		Options: data,
+	response := TravelOptions{
+		Options: travelOptions,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
@@ -254,14 +253,20 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check segments data
-	var segmentNumbers []int
+	cityDAO := db.NewCityDAO(db.GetDB())
 	for _, segment := range travelDetails.Segments {
-		// check non-empty strings
-		if segment.Departure == "" ||
-			segment.Destination == "" ||
-			segment.Vehicle == "" {
-			log.Println("Missing required fields")
-			http.Error(w, "Missing required fields", http.StatusBadRequest)
+		// check departure city
+		departureCity, err1 := cityDAO.GetCityById(segment.DepartureId)
+		if err1 != nil || segment.Departure != departureCity.CityName {
+			log.Println("Invalid departure city data")
+			http.Error(w, "Invalid departure city data", http.StatusBadRequest)
+			return
+		}
+		// check destination city
+		destinationCity, err1 := cityDAO.GetCityById(segment.DestinationId)
+		if err1 != nil || segment.Destination != destinationCity.CityName {
+			log.Println("Invalid destination city data")
+			http.Error(w, "Invalid destination city data", http.StatusBadRequest)
 			return
 		}
 		// check vehicle type
@@ -292,30 +297,44 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid travel distance", http.StatusBadRequest)
 			return
 		}
-		// check num segment
+		// check positive num segment
 		if segment.NumSegment < 0 {
 			log.Println("Invalid data")
 			http.Error(w, "Invalid num segment", http.StatusBadRequest)
 			return
 		}
-		// append num segment
-		segmentNumbers = append(segmentNumbers, segment.NumSegment)
-		// check right travel id
-		if segment.TravelID != travelDetails.Travel.TravelID {
-			log.Println("Invalid travel id")
-			http.Error(w, "Invalid travel id", http.StatusBadRequest)
-			return
-		}
+		// travel id is fake, will be set later
 	}
 
-	// check num_segments
-	sort.Ints(segmentNumbers)
-	for i := 0; i < len(segmentNumbers); i++ {
-		if segmentNumbers[i] != i+1 {
-			log.Println("Invalid num segment")
-			http.Error(w, "Invalid num segment", http.StatusBadRequest)
-			return
+	// check NumSegment (ordered outward segments, followed by ordered return segments)
+	// update NumSegment for return segments
+	numOutwardSegments := -1
+	errorFound := false
+	for i := 0; i < len(travelDetails.Segments) && !errorFound; i++ {
+		segment := travelDetails.Segments[i]
+
+		if segment.IsOutward {
+			// check num segment
+			if segment.NumSegment != i+1 {
+				errorFound = true
+			}
+		} else {
+			// if first return segment, set numOutwardSegments
+			if numOutwardSegments == -1 {
+				numOutwardSegments = i
+			}
+			// check num segment
+			if segment.NumSegment != i+1-numOutwardSegments {
+				errorFound = true
+			}
+			// update with final value
+			segment.NumSegment = i + 1
 		}
+	}
+	if errorFound {
+		log.Println("Invalid num segment")
+		http.Error(w, "Invalid num segment", http.StatusBadRequest)
+		return
 	}
 
 	// insert travel
