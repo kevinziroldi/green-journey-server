@@ -79,16 +79,16 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	// check non-empty strings (only for mandatory fields)
-	if user.FirstName == "" ||
-		user.LastName == "" ||
-		user.FirebaseUID == "" {
+	if user.FirstName == nil ||
+		user.LastName == nil ||
+		user.FirebaseUID == nil {
 		log.Println("Missing required fields")
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 	// check birthdate format and value
-	if user.BirthDate != "" {
-		birthDate, err := time.Parse("2006-01-02", user.BirthDate)
+	if user.BirthDate != nil {
+		birthDate, err := time.Parse("2006-01-02", *user.BirthDate)
 		if err != nil {
 			log.Println("Invalid data: ", err)
 			http.Error(w, "Invalid birth date format", http.StatusBadRequest)
@@ -100,22 +100,12 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// check valid zip code and house number
-	if user.ZipCode <= 0 {
-		// undefined bot not mandatory
-		user.ZipCode = 0
-	}
-	if user.HouseNumber <= 0 {
-		// undefined bot not mandatory
-		user.HouseNumber = 0
-	}
-	if user.Gender != "" {
+
+	if user.Gender != nil && *user.Gender != "male" && *user.Gender != "female" && *user.Gender != "other" {
 		// check gender
-		if user.Gender != "male" && user.Gender != "female" && user.Gender != "other" {
-			log.Println("Invalid data: ", err)
-			http.Error(w, "Invalid gender value", http.StatusBadRequest)
-			return
-		}
+		log.Println("Invalid data: ", err)
+		http.Error(w, "Invalid gender value", http.StatusBadRequest)
+		return
 	}
 
 	// insert user
@@ -199,11 +189,11 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 	// update fields in the request body
 	firstName, isString := updateData["first_name"].(string)
 	if isString && firstName != "" {
-		user.FirstName = firstName
+		user.FirstName = &firstName
 	}
 	lastName, isString := updateData["last_name"].(string)
 	if isString && lastName != "" {
-		user.LastName = lastName
+		user.LastName = &lastName
 	}
 	birthDate, isString := updateData["birth_date"].(string)
 	if isString && birthDate != "" {
@@ -213,7 +203,8 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid birth date format", http.StatusBadRequest)
 			return
 		}
-		user.BirthDate = parsedDate.Format("2006-01-02")
+		formattedDate := parsedDate.Format("2006-01-02")
+		user.BirthDate = &formattedDate
 	}
 	gender, isString := updateData["gender"].(string)
 	if isString && gender != "" {
@@ -222,23 +213,27 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid gender type", http.StatusBadRequest)
 			return
 		}
-		user.Gender = gender
+		user.Gender = &gender
 	}
+	// int values must be read as float and then converted
 	zipCode, isNumber := updateData["zip_code"].(float64)
 	if isNumber && zipCode > 0 {
-		user.ZipCode = int(zipCode)
+		formattedZipCode := int(zipCode)
+		user.ZipCode = &formattedZipCode
 	}
 	streetName, isString := updateData["street_name"].(string)
 	if isString && streetName != "" {
-		user.StreetName = streetName
+		user.StreetName = &streetName
 	}
+	// int values must be read as float and then converted
 	houseNumber, isNumber := updateData["house_number"].(float64)
 	if isNumber && houseNumber > 0 {
-		user.HouseNumber = int(houseNumber)
+		formattedHouseNumber := int(houseNumber)
+		user.HouseNumber = &formattedHouseNumber
 	}
 	city, isString := updateData["city"].(string)
 	if isString && city != "" {
-		user.City = city
+		user.City = &city
 	}
 
 	// update user in db
