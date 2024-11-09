@@ -339,7 +339,7 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 
 	// insert travel
 	travelDAO := db.NewTravelDAO(db.GetDB())
-	err = travelDAO.CreateTravel(travelDetails)
+	travelDetails, err = travelDAO.CreateTravel(travelDetails)
 	if err != nil {
 		log.Println("Error while interacting with the database: ", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -348,6 +348,13 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 
 	// send response
 	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(travelDetails)
+	if err != nil {
+		log.Println("Error encoding JSON: ", err)
+		http.Error(w, "Error encoding", http.StatusInternalServerError)
+		return
+	}
 }
 
 func HandleModifyTravel(w http.ResponseWriter, r *http.Request) {
@@ -424,6 +431,13 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(travel)
+	if err != nil {
+		log.Println("Error encoding JSON: ", err)
+		http.Error(w, "Error encoding", http.StatusInternalServerError)
+		return
+	}
 }
 
 // deleting travel from db automatically deletes segments (cascade)

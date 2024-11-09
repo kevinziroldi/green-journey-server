@@ -14,37 +14,37 @@ func NewTravelDAO(db *gorm.DB) *TravelDAO {
 	return &TravelDAO{db: db}
 }
 
-func (travelDAO *TravelDAO) CreateTravel(travelDetails model.TravelDetails) error {
+func (travelDAO *TravelDAO) CreateTravel(travelDetails model.TravelDetails) (model.TravelDetails, error) {
 	// create transaction
 	transaction := db.Begin()
 	if transaction.Error != nil {
-		return transaction.Error
+		return model.TravelDetails{}, transaction.Error
 	}
 
 	// create travel entry
 	result := transaction.Create(&travelDetails.Travel)
 	if result.Error != nil {
 		transaction.Rollback()
-		return result.Error
+		return model.TravelDetails{}, result.Error
 	}
 
 	// create segment entries
-	for _, segment := range travelDetails.Segments {
+	for i, _ := range travelDetails.Segments {
 		// set travelID to all segments
-		segment.TravelID = travelDetails.Travel.TravelID
-		result = transaction.Create(&segment)
+		travelDetails.Segments[i].TravelID = travelDetails.Travel.TravelID
+		result = transaction.Create(&travelDetails.Segments[i])
 		if result.Error != nil {
 			transaction.Rollback()
-			return result.Error
+			return model.TravelDetails{}, result.Error
 		}
 	}
 
 	result = transaction.Commit()
 	if result.Error != nil {
-		return result.Error
+		return model.TravelDetails{}, result.Error
 	}
 
-	return nil
+	return travelDetails, nil
 }
 
 func (travelDAO *TravelDAO) GetTravelRequestsByUserId(userID int) ([]model.TravelDetails, error) {
