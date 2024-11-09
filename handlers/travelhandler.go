@@ -96,12 +96,7 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Wrong time format", http.StatusBadRequest)
 		return
 	}
-	isOutwardStr := r.URL.Query().Get("isOutward")
-	if isOutwardStr == "" {
-		log.Println("Missing departure city value")
-		http.Error(w, "Missing departure city value", http.StatusBadRequest)
-		return
-	}
+
 	isOutward, err := strconv.ParseBool(r.URL.Query().Get("is_outward"))
 	if err != nil {
 		log.Println("Wrong isOutward format: ", err)
