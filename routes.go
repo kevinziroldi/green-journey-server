@@ -14,7 +14,10 @@ func SetupRoutes() {
 
 	http.HandleFunc("/travels/fromto", handlers.HandleTravelsFromTo)
 	http.HandleFunc("/travels/user", handlers.HandleTravelsUser)
-	http.HandleFunc("travels/user/", handlers.HandleModifyTravel)
+	http.HandleFunc("/travels/user/", handlers.HandleModifyTravel)
+
+	http.HandleFunc("/reviews", handlers.HandleReviews)
+	http.HandleFunc("/reviews/", handlers.HandleModifyReviews)
 
 	fmt.Println("Server starting on port 80")
 
