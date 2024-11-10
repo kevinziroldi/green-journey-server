@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"green-journey-server/db"
 	"green-journey-server/model"
 	"log"
@@ -129,7 +130,7 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 
 func HandleModifyUser(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "PATCH":
+	case "PUT":
 		modifyUser(w, r)
 	case "DELETE":
 		deleteUser(w, r)
@@ -140,7 +141,7 @@ func HandleModifyUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func modifyUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "PATCH" {
+	if r.Method != "PUT" {
 		log.Println("Method not supported")
 		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
 		return
@@ -155,6 +156,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userIDStr := parts[2]
+	fmt.Println("USERIDSTR" + userIDStr)
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil || userID < 0 {
 		log.Println("Invalid user ID")
@@ -162,21 +164,12 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get the user
-	userDAO := db.NewUserDAO(db.GetDB())
-	user, err := userDAO.GetUserById(userID)
-	if err != nil {
-		log.Println("User not found: ", err)
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-
-	// get body content
-	var updateData map[string]interface{}
-	err = json.NewDecoder(r.Body).Decode(&updateData)
+	// get the user from the body
+	var user model.User
+	err = json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		log.Println("Error while decoding JSON: ", err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "Wrong data provided", http.StatusBadRequest)
 		return
 	}
 	defer func() {
@@ -186,57 +179,40 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// update fields in the request body
-	firstName, isString := updateData["first_name"].(string)
-	if isString && firstName != "" {
-		user.FirstName = &firstName
+	// check non-empty strings (only for mandatory fields)
+	if user.FirstName == nil ||
+		user.LastName == nil ||
+		user.FirebaseUID == nil {
+		log.Println("Missing required fields")
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
 	}
-	lastName, isString := updateData["last_name"].(string)
-	if isString && lastName != "" {
-		user.LastName = &lastName
-	}
-	birthDate, isString := updateData["birth_date"].(string)
-	if isString && birthDate != "" {
-		parsedDate, err := time.Parse("2006-01-02", birthDate)
+	// check birthdate format and value
+	if user.BirthDate != nil {
+		birthDate, err := time.Parse("2006-01-02", *user.BirthDate)
 		if err != nil {
 			log.Println("Invalid data: ", err)
 			http.Error(w, "Invalid birth date format", http.StatusBadRequest)
 			return
 		}
-		formattedDate := parsedDate.Format("2006-01-02")
-		user.BirthDate = &formattedDate
-	}
-	gender, isString := updateData["gender"].(string)
-	if isString && gender != "" {
-		if gender != "male" && gender != "female" && gender != "other" {
-			log.Println("Invalid data")
-			http.Error(w, "Invalid gender type", http.StatusBadRequest)
+		if birthDate.After(time.Now()) {
+			log.Println("Invalid data: ", err)
+			http.Error(w, "Birth date cannot be in the future", http.StatusBadRequest)
 			return
 		}
-		user.Gender = &gender
-	}
-	// int values must be read as float and then converted
-	zipCode, isNumber := updateData["zip_code"].(float64)
-	if isNumber && zipCode > 0 {
-		formattedZipCode := int(zipCode)
-		user.ZipCode = &formattedZipCode
-	}
-	streetName, isString := updateData["street_name"].(string)
-	if isString && streetName != "" {
-		user.StreetName = &streetName
-	}
-	// int values must be read as float and then converted
-	houseNumber, isNumber := updateData["house_number"].(float64)
-	if isNumber && houseNumber > 0 {
-		formattedHouseNumber := int(houseNumber)
-		user.HouseNumber = &formattedHouseNumber
-	}
-	city, isString := updateData["city"].(string)
-	if isString && city != "" {
-		user.City = &city
 	}
 
+	if user.Gender != nil && *user.Gender != "male" && *user.Gender != "female" && *user.Gender != "other" {
+		// check gender
+		log.Println("Invalid data: ", err)
+		http.Error(w, "Invalid gender value", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println(user)
+
 	// update user in db
+	userDAO := db.NewUserDAO(db.GetDB())
 	err = userDAO.UpdateUser(user)
 	if err != nil {
 		log.Println("Error while interacting with db: ", err)
@@ -244,6 +220,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// send user back
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(user)
 	if err != nil {
