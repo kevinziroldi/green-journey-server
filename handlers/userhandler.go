@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"green-journey-server/db"
 	"green-journey-server/model"
 	"log"
@@ -156,7 +155,6 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userIDStr := parts[2]
-	fmt.Println("USERIDSTR" + userIDStr)
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil || userID < 0 {
 		log.Println("Invalid user ID")
@@ -208,8 +206,6 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid gender value", http.StatusBadRequest)
 		return
 	}
-
-	fmt.Println(user)
 
 	// update user in db
 	userDAO := db.NewUserDAO(db.GetDB())
