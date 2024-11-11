@@ -110,7 +110,7 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 
 	// insert user
 	userDAO := db.NewUserDAO(db.GetDB())
-	err = userDAO.AddUser(user)
+	user, err = userDAO.AddUser(user)
 	if err != nil {
 		log.Println("Error while interacting with the database: ", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

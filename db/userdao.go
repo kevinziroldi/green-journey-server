@@ -26,9 +26,9 @@ func (userDAO *UserDAO) GetUserByFirebaseUID(firebaseUID string) (model.User, er
 	return user, result.Error
 }
 
-func (userDAO *UserDAO) AddUser(user model.User) error {
+func (userDAO *UserDAO) AddUser(user model.User) (model.User, error) {
 	result := db.Create(&user)
-	return result.Error
+	return user, result.Error
 }
 
 func (userDAO *UserDAO) UpdateUser(user model.User) error {
