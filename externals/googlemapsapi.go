@@ -614,9 +614,11 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 		// append to list
 		segments = append(segments, segment)
 	}
-
+	fmt.Println(segments)
 	segments = compactTransitSegments(segments)
+	fmt.Println(segments)
 	segments = setDepDestWalkingSegments(segments, originCity, destinationCity)
+	fmt.Println(segments)
 
 	return segments, nil
 }
