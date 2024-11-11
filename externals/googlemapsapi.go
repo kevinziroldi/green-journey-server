@@ -679,21 +679,21 @@ func compactTransitSegments(segments []model.Segment) []model.Segment {
 }
 
 func setDepDestWalkingSegments(segments []model.Segment, originCity, destinationCity model.City) []model.Segment {
-	for i, seg := range segments {
-		if seg.Vehicle == "walk" {
-			if seg.NumSegment == 1 {
-				seg.DepartureId = originCity.CityID
-				seg.Departure = originCity.CityName
+	for i, _ := range segments {
+		if segments[i].Vehicle == "walk" {
+			if segments[i].NumSegment == 1 {
+				segments[i].DepartureId = originCity.CityID
+				segments[i].Departure = originCity.CityName
 			} else {
-				seg.DepartureId = segments[i-1].DestinationId
-				seg.Departure = segments[i-1].Destination
+				segments[i].DepartureId = segments[i-1].DestinationId
+				segments[i].Departure = segments[i-1].Destination
 			}
-			if seg.NumSegment == len(segments) {
-				seg.DestinationId = destinationCity.CityID
-				seg.Destination = destinationCity.CityName
+			if segments[i].NumSegment == len(segments) {
+				segments[i].DestinationId = destinationCity.CityID
+				segments[i].Destination = destinationCity.CityName
 			} else {
-				seg.DestinationId = segments[i+1].DepartureId
-				seg.Destination = segments[i+1].Departure
+				segments[i].DestinationId = segments[i+1].DepartureId
+				segments[i].Destination = segments[i+1].Departure
 			}
 		}
 		// else don't modify
