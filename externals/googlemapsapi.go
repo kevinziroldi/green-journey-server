@@ -223,7 +223,7 @@ func GetDirectionsBike(originName, destinationName string, originLatitude, origi
 	distance := response.Rows[0].Elements[0].Distance.Value / 1000
 
 	segment := model.Segment{
-		SegmentID:     -1,
+		// id auto increment
 		DepartureId:   originCity.CityID,
 		DestinationId: destinationCity.CityID,
 		Departure:     originCity.CityName,
@@ -322,7 +322,7 @@ func GetDirectionsCar(originName, destinationName string, originLatitude, origin
 	tollCost := GetTollCost(originCity.CityName, destinationCity.CityName, distance)
 
 	segment := model.Segment{
-		SegmentID:     -1,
+		// id auto increment
 		DepartureId:   originCity.CityID,
 		DestinationId: destinationCity.CityID,
 		Departure:     originCity.CityName,
@@ -614,11 +614,9 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 		// append to list
 		segments = append(segments, segment)
 	}
-	fmt.Println(segments)
+
 	segments = compactTransitSegments(segments)
-	fmt.Println(segments)
 	segments = setDepDestWalkingSegments(segments, originCity, destinationCity)
-	fmt.Println(segments)
 
 	return segments, nil
 }

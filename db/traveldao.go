@@ -32,6 +32,7 @@ func (travelDAO *TravelDAO) CreateTravel(travelDetails model.TravelDetails) (mod
 	for i, _ := range travelDetails.Segments {
 		// set travelID to all segments
 		travelDetails.Segments[i].TravelID = travelDetails.Travel.TravelID
+		travelDetails.Segments[i].Hour = travelDetails.Segments[i].Date
 		result = transaction.Create(&travelDetails.Segments[i])
 		if result.Error != nil {
 			transaction.Rollback()
