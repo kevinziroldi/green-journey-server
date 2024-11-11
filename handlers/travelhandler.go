@@ -250,19 +250,21 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 	// check segments data
 	cityDAO := db.NewCityDAO(db.GetDB())
 	for _, segment := range travelDetails.Segments {
-		// check departure city
-		departureCity, err1 := cityDAO.GetCityById(segment.DepartureId)
-		if err1 != nil || segment.Departure != departureCity.CityName {
-			log.Println("Invalid departure city data")
-			http.Error(w, "Invalid departure city data", http.StatusBadRequest)
-			return
-		}
-		// check destination city
-		destinationCity, err1 := cityDAO.GetCityById(segment.DestinationId)
-		if err1 != nil || segment.Destination != destinationCity.CityName {
-			log.Println("Invalid destination city data")
-			http.Error(w, "Invalid destination city data", http.StatusBadRequest)
-			return
+		if segment.Vehicle != "walk" {
+			// check departure city
+			departureCity, err1 := cityDAO.GetCityById(segment.DepartureId)
+			if err1 != nil || segment.Departure != departureCity.CityName {
+				log.Println("Invalid departure city data")
+				http.Error(w, "Invalid departure city data", http.StatusBadRequest)
+				return
+			}
+			// check destination city
+			destinationCity, err1 := cityDAO.GetCityById(segment.DestinationId)
+			if err1 != nil || segment.Destination != destinationCity.CityName {
+				log.Println("Invalid destination city data")
+				http.Error(w, "Invalid destination city data", http.StatusBadRequest)
+				return
+			}
 		}
 		// check vehicle type
 		if segment.Vehicle != "car" &&
