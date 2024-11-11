@@ -9,7 +9,7 @@ type Segment struct {
 	DepartureId   int           `gorm:"column:id_departure;type:integer;not null" json:"departure_id"`
 	DestinationId int           `gorm:"column:id_destination;type:integer;not null" json:"destination_id"`
 	Date          time.Time     `gorm:"column:date;type:date;not null" json:"date"`
-	Hour          time.Time     `gorm:"column:time;type:time;not null" json:"time"`
+	Hour          time.Time     `gorm:"column:hour;type:time;not null" json:"time"`
 	Duration      time.Duration `gorm:"column:duration;type:interval;not null" json:"duration"`
 	Vehicle       string        `gorm:"column:vehicle;type:text;not null" json:"vehicle"`
 	Description   string        `gorm:"column:description;type:text" json:"description"`
