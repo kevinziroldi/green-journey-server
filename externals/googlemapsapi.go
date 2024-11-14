@@ -616,7 +616,7 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 	}
 
 	segments = compactTransitSegments(segments)
-	segments = setDepDestWalkingSegments(segments, originCity, destinationCity)
+	segments = setMissingDataWalkingSegments(segments, originCity, destinationCity)
 
 	return segments, nil
 }
@@ -676,9 +676,10 @@ func compactTransitSegments(segments []model.Segment) []model.Segment {
 	return compactedSegments
 }
 
-func setDepDestWalkingSegments(segments []model.Segment, originCity, destinationCity model.City) []model.Segment {
+func setMissingDataWalkingSegments(segments []model.Segment, originCity, destinationCity model.City) []model.Segment {
 	for i, _ := range segments {
 		if segments[i].Vehicle == "walk" {
+			// set departure and departure id
 			if segments[i].NumSegment == 1 {
 				segments[i].DepartureId = originCity.CityID
 				segments[i].Departure = originCity.CityName
@@ -686,12 +687,33 @@ func setDepDestWalkingSegments(segments []model.Segment, originCity, destination
 				segments[i].DepartureId = segments[i-1].DestinationId
 				segments[i].Departure = segments[i-1].Destination
 			}
+
+			// set destination and destination id
 			if segments[i].NumSegment == len(segments) {
 				segments[i].DestinationId = destinationCity.CityID
 				segments[i].Destination = destinationCity.CityName
 			} else {
 				segments[i].DestinationId = segments[i+1].DepartureId
 				segments[i].Destination = segments[i+1].Departure
+			}
+
+			// compute date and hour
+			if segments[i].NumSegment == len(segments) {
+				// if last segment, based on previous segment (if present)
+				if segments[i].NumSegment > 1 {
+					prevTime := segments[i-1].Hour
+					prevDuration := segments[i-1].Duration
+					walkDepTime := prevTime.Add(prevDuration)
+					segments[i].Date = walkDepTime
+					segments[i].Hour = walkDepTime
+				}
+			} else {
+				// if not the last segment, based on the next segment
+				nextTime := segments[i+1].Hour
+				walkDuration := segments[i].Duration
+				walkDepTime := nextTime.Add(-walkDuration)
+				segments[i].Date = walkDepTime
+				segments[i].Hour = walkDepTime
 			}
 		}
 		// else don't modify
