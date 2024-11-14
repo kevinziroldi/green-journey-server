@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
+	"gorm.io/gorm"
 	"green-journey-server/db"
 	"green-journey-server/externals"
 	"green-journey-server/model"
@@ -201,12 +203,18 @@ func getTravelsByUserId(w http.ResponseWriter, r *http.Request) {
 
 	travelDAO := db.NewTravelDAO(db.GetDB())
 
-	travelRequests, err := travelDAO.GetTravelRequestsByUserId(id)
+	// if I get an empty list, it is not an error
+	// declare empty slice and append, in order to have an empty slice and not null slice
+	travelRequests := []model.TravelDetails{}
+	travels, err := travelDAO.GetTravelRequestsByUserId(id)
 	if err != nil {
-		log.Println("Error getting travels: ", err)
-		http.Error(w, "Error getting travels", http.StatusNotFound)
-		return
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Println("Error getting travels: ", err)
+			http.Error(w, "Error getting travels", http.StatusNotFound)
+			return
+		}
 	}
+	travelRequests = append(travelRequests, travels...)
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(travelRequests)
