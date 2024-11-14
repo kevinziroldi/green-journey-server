@@ -733,13 +733,7 @@ func GetCityNoIata(name string, latitude, longitude float64) (model.City, error)
 	}
 
 	// check if a city with nearly same coordinates exists
-	deltaCoordinates := 0.2
-	city, err = cityDAO.GetCityByCoordinates(latitude, longitude, deltaCoordinates)
-	if err == nil {
-		return city, nil
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return model.City{}, err
-	}
+	// not by coordinates, I want the exact name (e.g. stations)
 
 	// create a city without iata
 	city = model.City{
