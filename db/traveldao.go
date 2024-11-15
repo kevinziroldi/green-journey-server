@@ -80,8 +80,18 @@ func (travelDAO *TravelDAO) GetTravelRequestsByUserId(userID int) ([]model.Trave
 				return nil, err
 			}
 
-			segments[i].Departure = originCity.CityName
-			segments[i].Destination = destinationCity.CityName
+			segments[i].DepartureCity = originCity.CityName
+			if originCity.CountryName != nil {
+				segments[i].DepartureCountry = *originCity.CountryName
+			} else {
+				segments[i].DepartureCountry = ""
+			}
+			segments[i].DestinationCity = destinationCity.CityName
+			if destinationCity.CountryName != nil {
+				segments[i].DestinationCountry = *destinationCity.CountryName
+			} else {
+				segments[i].DestinationCountry = ""
+			}
 		}
 
 		// add to travelRequests

@@ -261,14 +261,14 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 		if segment.Vehicle != "walk" {
 			// check departure city
 			departureCity, err1 := cityDAO.GetCityById(segment.DepartureId)
-			if err1 != nil || segment.Departure != departureCity.CityName {
+			if err1 != nil || segment.DepartureCity != departureCity.CityName {
 				log.Println("Invalid departure city data")
 				http.Error(w, "Invalid departure city data", http.StatusBadRequest)
 				return
 			}
 			// check destination city
 			destinationCity, err1 := cityDAO.GetCityById(segment.DestinationId)
-			if err1 != nil || segment.Destination != destinationCity.CityName {
+			if err1 != nil || segment.DestinationCity != destinationCity.CityName {
 				log.Println("Invalid destination city data")
 				http.Error(w, "Invalid destination city data", http.StatusBadRequest)
 				return
