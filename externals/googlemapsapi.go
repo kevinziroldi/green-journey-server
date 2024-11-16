@@ -772,7 +772,7 @@ func GetCityNoIata(name string, latitude, longitude float64) (model.City, error)
 	cityDAO := db.NewCityDAO(db.GetDB())
 
 	// check if a city with same name exists
-	city, err := cityDAO.GetCityByName(name)
+	city, err := cityDAO.GetCityByName(name, latitude, longitude)
 	if err == nil {
 		return city, nil
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {

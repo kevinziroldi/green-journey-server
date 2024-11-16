@@ -3,7 +3,9 @@ package db
 import (
 	"fmt"
 	"gorm.io/gorm"
+	"green-journey-server/internals"
 	"green-journey-server/model"
+	"math"
 )
 
 type CityDAO struct {
@@ -32,12 +34,28 @@ func (cityDAO *CityDAO) GetCityById(cityID int) (model.City, error) {
 	return city, result.Error
 }
 
-func (cityDAO *CityDAO) GetCityByName(name string) (model.City, error) {
-	var city model.City
+func (cityDAO *CityDAO) GetCityByName(name string, targetLatitude, targetLongitude float64) (model.City, error) {
+	var cities []model.City
 
-	result := cityDAO.db.Where("city_name = ?", name).First(&city)
+	// get all cities with provided name
+	result := cityDAO.db.Where("city_name = ?", name).Find(&cities)
 	if result.Error != nil {
 		return model.City{}, result.Error
+	}
+	if len(cities) == 0 {
+		return model.City{}, gorm.ErrRecordNotFound
+	}
+
+	// choose the closest city to (targetLatitude, targetLongitude)
+	minDistance := math.MaxFloat64
+	var city model.City
+
+	for _, currCity := range cities {
+		distance := internals.ComputeHaversineDistance(targetLatitude, targetLongitude, currCity.Latitude, currCity.Longitude)
+		if distance < minDistance {
+			minDistance = distance
+			city = currCity
+		}
 	}
 
 	return city, nil
