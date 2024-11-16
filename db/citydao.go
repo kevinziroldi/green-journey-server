@@ -62,7 +62,7 @@ func (cityDAO *CityDAO) GetCityByName(name string, targetLatitude, targetLongitu
 }
 
 func (cityDAO *CityDAO) GetCityByCoordinates(latitude, longitude, delta float64) (model.City, error) {
-	var city model.City
+	var cities []model.City
 
 	minLatitude := latitude - delta
 	maxLatitude := latitude + delta
@@ -74,13 +74,23 @@ func (cityDAO *CityDAO) GetCityByCoordinates(latitude, longitude, delta float64)
 		latitude, latitude, longitude, longitude,
 	)
 
-	result := cityDAO.db.Where("latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ?", minLatitude, maxLatitude, minLongitude, maxLongitude).Order(query).First(&city)
-
+	result := cityDAO.db.Where("latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ?", minLatitude, maxLatitude, minLongitude, maxLongitude).Order(query).Find(&cities)
 	if result.Error != nil {
 		return model.City{}, result.Error
 	}
+	if len(cities) == 0 {
+		return model.City{}, gorm.ErrRecordNotFound
+	}
 
-	return city, nil
+	// return first city with IATA
+	for _, currCity := range cities {
+		if currCity.Iata != nil {
+			return currCity, nil
+		}
+	}
+	// or first city (without IATA)
+
+	return cities[0], nil
 }
 
 func (cityDAO *CityDAO) GetCityByCityIata(cityIata string) (model.City, error) {
