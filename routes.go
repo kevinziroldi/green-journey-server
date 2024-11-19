@@ -19,6 +19,8 @@ func SetupRoutes() {
 	http.HandleFunc("/reviews", handlers.HandleReviews)
 	http.HandleFunc("/reviews/", handlers.HandleModifyReviews)
 
+	http.HandleFunc("/ranking", handlers.HandleRanking)
+
 	fmt.Println("Server starting on port 80")
 
 	// start server

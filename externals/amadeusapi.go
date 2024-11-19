@@ -420,6 +420,7 @@ func GetCityWithIata(name string, latitude, longitude float64) (model.City, erro
 	if err == nil {
 		// check if it has iata
 		if city.Iata != nil && *city.Iata != "" {
+			fmt.Println("BY CITY: " + city.CityName + " FOR " + name)
 			return city, nil
 		}
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
