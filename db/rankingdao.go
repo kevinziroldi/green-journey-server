@@ -4,10 +4,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type RankingsDao struct {
+type RankingDao struct {
 	db *gorm.DB
 }
 
-func NewRankingsDAO(db *gorm.DB) *RankingsDao {
-	return &RankingsDao{db: db}
+func NewRankingDAO(db *gorm.DB) *RankingDao {
+	return &RankingDao{db: db}
+}
+
+func (rankingDAO *RankingDao) ComputeShortDistanceRanking() {
+	// TODO
+}
+
+func (rankingDAO *RankingDao) ComputeLongDistanceRanking() {
+	// TODO
 }

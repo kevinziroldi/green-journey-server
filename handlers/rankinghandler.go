@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"green-journey-server/db"
 	"log"
 	"net/http"
 )
@@ -22,6 +23,12 @@ func computeRanking(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
 		return
 	}
+
+	rankingDAO := db.NewRankingDAO(db.GetDB())
+	rankingDAO.ComputeShortDistanceRanking() // return, err
+	rankingDAO.ComputeLongDistanceRanking()  // return, err
+
+	// put in json and send response
 
 	// gestire tutto con query SQL, altrimenti devo creare tantissimi oggetti Go
 
