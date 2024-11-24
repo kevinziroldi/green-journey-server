@@ -18,6 +18,11 @@ type TravelOptions struct {
 	Options [][]model.Segment `json:"options"`
 }
 
+// TODO sono da modificare !!!
+const travelCoefficient = 10.0
+const compensationCoefficient = 10.0
+const bonusScore = 100.0
+
 func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		log.Println("Method not supported")
@@ -190,7 +195,7 @@ func getTravelsByUserId(w http.ResponseWriter, r *http.Request) {
 	travelDAO := db.NewTravelDAO(db.GetDB())
 
 	// if I get an empty list, it is not an error
-	// declare empty slice and append, in order to have an empty slice and not null slice
+	// declare empty slice and append, in order to have an empty slice and not nil slice
 	travelRequests := []model.TravelDetails{}
 	travels, err := travelDAO.GetTravelRequestsByUserId(id)
 	if err != nil {
@@ -235,9 +240,15 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 
 	// check travel data
 	// check co2 compensated
-	if travelDetails.Travel.CO2Compensated < 0 {
+	if travelDetails.Travel.CO2Compensated != 0 {
 		log.Println("Invalid CO2 values")
 		http.Error(w, "Invalid CO2 values", http.StatusBadRequest)
+		return
+	}
+
+	if travelDetails.Travel.Confirmed == true {
+		log.Println("Confirmed must be false")
+		http.Error(w, "Confirmed must be false", http.StatusBadRequest)
 		return
 	}
 
@@ -406,14 +417,45 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// update fields in the request (only co2 compensated)
-	co2Compensated, isNumber := updateData["co2_compensated"].(float64)
-	if isNumber && co2Compensated >= 0 {
-		travel.CO2Compensated = co2Compensated
+	// update fields in the request
+
+	co2Compensated, formatOk := updateData["co2_compensated"].(float64)
+	if formatOk && co2Compensated >= 0 {
+		if travel.CO2Compensated < co2Compensated {
+			travel.CO2Compensated = co2Compensated
+		} else {
+			log.Println("CO2 compensated can't decrease: ", err)
+			http.Error(w, "CO2 compensated can't decrease", http.StatusBadRequest)
+			return
+		}
+	}
+
+	confirmed, formatOk := updateData["confirmed"].(bool)
+	if formatOk {
+		if travel.Confirmed == true && confirmed == false {
+			log.Println("Travel is already confirmed, change not possible: ", err)
+			http.Error(w, "Travel is already confirmed, change not possible", http.StatusBadRequest)
+			return
+		} else {
+			travel.Confirmed = confirmed
+		}
+	}
+
+	if co2Compensated > 0 && !confirmed {
+		log.Println("It is not possible to compensate before confirming")
+		http.Error(w, "It is not possible to compensate before confirming", http.StatusBadRequest)
+		return
+	}
+
+	deltaScore, err := computeDeltaTravelModify(travel, co2Compensated, confirmed)
+	if err != nil {
+		log.Println("Error computing the score to be added: ", err)
+		http.Error(w, "Error computing the score to be added", http.StatusBadRequest)
+		return
 	}
 
 	// update travel in db
-	err = travelDAO.UpdateTravel(travel)
+	err = travelDAO.UpdateTravel(travel, deltaScore)
 	if err != nil {
 		log.Println("Error interacting with the db: ", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -428,6 +470,64 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding", http.StatusInternalServerError)
 		return
 	}
+}
+
+func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confirmed bool) (float64, error) {
+	deltaScore := 0.0
+
+	travelDAO := db.NewTravelDAO(db.GetDB())
+	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(travel.TravelID)
+	if err != nil {
+		return 0, err
+	}
+
+	// compute total distance and co2 emitted
+	totalDistance := 0.0
+	totalCO2Emitted := 0.0
+	for _, segment := range travelDetails.Segments {
+		totalDistance += segment.Distance
+		totalCO2Emitted += segment.CO2Emitted
+	}
+
+	if !travel.Confirmed && confirmed {
+		deltaScore += travelCoefficient * totalDistance / (0.001 + totalCO2Emitted)
+	}
+
+	if travel.CO2Compensated < co2Compensated {
+		deltaScore += compensationCoefficient * (co2Compensated - travel.CO2Compensated)
+
+		if co2Compensated == totalCO2Emitted {
+			deltaScore += bonusScore
+		}
+	}
+
+	return deltaScore, nil
+}
+
+func computeDeltaTravelDelete(travel model.Travel) (float64, error) {
+	deltaScore := 0.0
+
+	travelDAO := db.NewTravelDAO(db.GetDB())
+	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(travel.TravelID)
+	if err != nil {
+		return 0, err
+	}
+
+	// compute total distance and co2 emitted
+	totalDistance := 0.0
+	totalCO2Emitted := 0.0
+	for _, segment := range travelDetails.Segments {
+		totalDistance += segment.Distance
+		totalCO2Emitted += segment.CO2Emitted
+	}
+
+	deltaScore += travelCoefficient * totalDistance / (0.001 + totalCO2Emitted)
+	deltaScore += compensationCoefficient * travel.CO2Compensated
+	if travel.CO2Compensated == totalCO2Emitted {
+		deltaScore += bonusScore
+	}
+
+	return deltaScore, nil
 }
 
 // deleting travel from db automatically deletes segments (cascade)
@@ -455,13 +555,21 @@ func deleteTravel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	travelDAO := db.NewTravelDAO(db.GetDB())
-	_, err = travelDAO.GetTravelById(travelID)
+	travel, err := travelDAO.GetTravelById(travelID)
 	if err != nil {
 		log.Println("Invalid travel id")
 		http.Error(w, "Invalid travel ID", http.StatusBadRequest)
 		return
 	}
-	err = travelDAO.DeleteTravel(travelID)
+
+	deltaScore, err := computeDeltaTravelDelete(travel)
+	if err != nil {
+		log.Println("Error computing the score to be removed: ", err)
+		http.Error(w, "Error computing the score to be removed", http.StatusBadRequest)
+		return
+	}
+
+	err = travelDAO.DeleteTravel(travelID, deltaScore)
 	if err != nil {
 		log.Println("Error interacting with the db: ", err)
 		http.Error(w, "Error interacting with the db", http.StatusBadRequest)

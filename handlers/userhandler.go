@@ -79,9 +79,10 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	// check non-empty strings (only for mandatory fields)
-	if user.FirstName == nil ||
-		user.LastName == nil ||
-		user.FirebaseUID == nil {
+	if user.FirstName == "" ||
+		user.LastName == "" ||
+		user.FirebaseUID == "" ||
+		user.Score != 0 {
 		log.Println("Missing required fields")
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
@@ -162,6 +163,15 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get existing user
+	userDAO := db.NewUserDAO(db.GetDB())
+	existingUser, err := userDAO.GetUserById(userID)
+	if err != nil {
+		log.Println("User not found: ", err)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
 	// get the user from the body
 	var user model.User
 	err = json.NewDecoder(r.Body).Decode(&user)
@@ -177,18 +187,31 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	if user.UserID != userID {
+		log.Println("User ID mismatch")
+		http.Error(w, "User ID mismatch", http.StatusBadRequest)
+		return
+	}
+
 	// check non-empty strings (only for mandatory fields)
-	if user.FirstName == nil ||
-		user.LastName == nil ||
-		user.FirebaseUID == nil {
+	if user.FirstName == "" ||
+		user.LastName == "" ||
+		user.FirebaseUID == "" {
 		log.Println("Missing required fields")
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
+	// check data that can't be changed from the client
+	if existingUser.FirebaseUID != user.FirebaseUID ||
+		existingUser.Score != user.Score {
+		log.Println("Provided data can't be changed by the client: ", err)
+		http.Error(w, "Provided data can't be changed by the client", http.StatusBadRequest)
+		return
+	}
 	// check birthdate format and value
 	if user.BirthDate != nil {
-		birthDate, err := time.Parse("2006-01-02", *user.BirthDate)
-		if err != nil {
+		birthDate, err1 := time.Parse("2006-01-02", *user.BirthDate)
+		if err1 != nil {
 			log.Println("Invalid data: ", err)
 			http.Error(w, "Invalid birth date format", http.StatusBadRequest)
 			return
@@ -199,7 +222,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
+	// check gender
 	if user.Gender != nil && *user.Gender != "male" && *user.Gender != "female" && *user.Gender != "other" {
 		// check gender
 		log.Println("Invalid data: ", err)
@@ -208,7 +231,6 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update user in db
-	userDAO := db.NewUserDAO(db.GetDB())
 	err = userDAO.UpdateUser(user)
 	if err != nil {
 		log.Println("Error while interacting with db: ", err)
