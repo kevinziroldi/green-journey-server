@@ -75,6 +75,12 @@ func (travelDAO *TravelDAO) GetTravelRequestsByUserId(userID int) ([]model.Trave
 			return nil, result.Error
 		}
 
+		// inject segment data
+		err := injectCityInSegments(segments)
+		if err != nil {
+			return nil, err
+		}
+
 		// add to travelRequests
 		travelDetailsList = append(travelDetailsList, model.TravelDetails{
 			Travel: travel, Segments: segments,
@@ -102,6 +108,11 @@ func (travelDAO *TravelDAO) GetTravelDetailsByTravelID(travelID int) (model.Trav
 	result := db.Where("id_travel = ?", travel.TravelID).Find(&segments)
 	if result.Error != nil {
 		return model.TravelDetails{}, result.Error
+	}
+
+	err = injectCityInSegments(segments)
+	if err != nil {
+		return model.TravelDetails{}, err
 	}
 
 	return model.TravelDetails{Travel: travel, Segments: segments}, nil
@@ -215,5 +226,33 @@ func (travelDAO *TravelDAO) DeleteTravel(travelID int, deltaScore float64, isSho
 		return result.Error
 	}
 
+	return nil
+}
+
+func injectCityInSegments(segments []model.Segment) error {
+	// add departure and destination to segments
+	cityDAO := NewCityDAO(GetDB())
+	for i, _ := range segments {
+		originCity, err := cityDAO.GetCityById(segments[i].DepartureId)
+		if err != nil {
+			return err
+		}
+		destinationCity, err := cityDAO.GetCityById(segments[i].DestinationId)
+		if err != nil {
+			return err
+		}
+		segments[i].DepartureCity = originCity.CityName
+		if originCity.CountryName != nil {
+			segments[i].DepartureCountry = *originCity.CountryName
+		} else {
+			segments[i].DepartureCountry = ""
+		}
+		segments[i].DestinationCity = destinationCity.CityName
+		if destinationCity.CountryName != nil {
+			segments[i].DestinationCountry = *destinationCity.CountryName
+		} else {
+			segments[i].DestinationCountry = ""
+		}
+	}
 	return nil
 }

@@ -216,21 +216,33 @@ func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, h
 	}
 	distance := response.Rows[0].Elements[0].Distance.Value / 1000
 
+	departureCountry := ""
+	if originCity.CountryName != nil {
+		departureCountry = *originCity.CountryName
+	}
+	destinationCountry := ""
+	if destinationCity.CountryName != nil {
+		destinationCountry = *destinationCity.CountryName
+	}
 	segment := model.Segment{
 		// id auto increment
-		DepartureId:   originCity.CityID,
-		DestinationId: destinationCity.CityID,
-		Date:          date,
-		Hour:          hour,
-		Duration:      time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
-		Vehicle:       "bike",
-		Description:   "",
-		Price:         0,
-		CO2Emitted:    0,
-		Distance:      float64(distance),
-		NumSegment:    1,
-		IsOutward:     isOutbound,
-		TravelID:      -1,
+		DepartureId:        originCity.CityID,
+		DestinationId:      destinationCity.CityID,
+		DepartureCity:      originCity.CityName,
+		DepartureCountry:   departureCountry,
+		DestinationCity:    destinationCity.CityName,
+		DestinationCountry: destinationCountry,
+		Date:               date,
+		Hour:               hour,
+		Duration:           time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
+		Vehicle:            "bike",
+		Description:        "",
+		Price:              0,
+		CO2Emitted:         0,
+		Distance:           float64(distance),
+		NumSegment:         1,
+		IsOutward:          isOutbound,
+		TravelID:           -1,
 	}
 
 	return []model.Segment{segment}, nil
@@ -303,21 +315,33 @@ func GetDirectionsCar(originCity, destinationCity model.City, date time.Time, ho
 	fuelCostPerLiter := GetFuelCostPerLiter(originCity.CityName)
 	tollCost := GetTollCost(originCity.CityName, destinationCity.CityName, distance)
 
+	departureCountry := ""
+	if originCity.CountryName != nil {
+		departureCountry = *originCity.CountryName
+	}
+	destinationCountry := ""
+	if destinationCity.CountryName != nil {
+		destinationCountry = *destinationCity.CountryName
+	}
 	segment := model.Segment{
 		// id auto increment
-		DepartureId:   originCity.CityID,
-		DestinationId: destinationCity.CityID,
-		Date:          date,
-		Hour:          hour,
-		Duration:      time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
-		Vehicle:       "car",
-		Description:   "",
-		Price:         internals.ComputeCarPrice(fuelCostPerLiter, float64(distance), tollCost),
-		CO2Emitted:    internals.ComputeCarEmission(distance),
-		Distance:      float64(response.Rows[0].Elements[0].Distance.Value) / 1000,
-		NumSegment:    1,
-		IsOutward:     isOutbound,
-		TravelID:      -1,
+		DepartureId:        originCity.CityID,
+		DestinationId:      destinationCity.CityID,
+		DepartureCity:      originCity.CityName,
+		DepartureCountry:   departureCountry,
+		DestinationCity:    destinationCity.CityName,
+		DestinationCountry: destinationCountry,
+		Date:               date,
+		Hour:               hour,
+		Duration:           time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
+		Vehicle:            "car",
+		Description:        "",
+		Price:              internals.ComputeCarPrice(fuelCostPerLiter, float64(distance), tollCost),
+		CO2Emitted:         internals.ComputeCarEmission(distance),
+		Distance:           float64(response.Rows[0].Elements[0].Distance.Value) / 1000,
+		NumSegment:         1,
+		IsOutward:          isOutbound,
+		TravelID:           -1,
 	}
 
 	return []model.Segment{segment}, nil
@@ -475,18 +499,22 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 
 			segment = model.Segment{
 				// id is autoincrement
-				DepartureId:   -1, // updated at the end
-				DestinationId: -1, // updated at the end
-				Date:          time.Unix(0, 0),
-				Hour:          time.Unix(0, 0),
-				Duration:      time.Duration(duration) * time.Second,
-				Vehicle:       "walk",
-				Description:   "",
-				Price:         0,
-				Distance:      distance,
-				CO2Emitted:    0,
-				NumSegment:    numSegment,
-				IsOutward:     isOutbound,
+				DepartureId:        -1, // updated at the end
+				DestinationId:      -1, // updated at the end
+				DepartureCity:      "", // updated at the end
+				DestinationCity:    "", // updated at the end
+				DepartureCountry:   "", // updated at the end
+				DestinationCountry: "", // updated at the end
+				Date:               time.Unix(0, 0),
+				Hour:               time.Unix(0, 0),
+				Duration:           time.Duration(duration) * time.Second,
+				Vehicle:            "walk",
+				Description:        "",
+				Price:              0,
+				Distance:           distance,
+				CO2Emitted:         0,
+				NumSegment:         numSegment,
+				IsOutward:          isOutbound,
 				// travel id set later
 			}
 		} else {
@@ -547,21 +575,32 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 				co2Emitted = internals.ComputeBusEmission(int(distance))
 			}
 
-			// create segment
+			departureCountry := ""
+			if stepDepCity.CountryName != nil {
+				departureCountry = *stepDepCity.CountryName
+			}
+			destinationCountry := ""
+			if stepDestCity.CountryName != nil {
+				destinationCountry = *stepDestCity.CountryName
+			}
 			segment = model.Segment{
 				// id is autoincrement
-				DepartureId:   stepDepCity.CityID,
-				DestinationId: stepDestCity.CityID,
-				Date:          time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
-				Hour:          time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
-				Duration:      time.Duration(step.Duration.Value) * time.Second,
-				Vehicle:       travelMode,
-				Description:   step.TransitDetails.Line.ShortName + ", " + step.TransitDetails.Line.Name,
-				Price:         GetTransitCost(stepDepCity.CityName, stepDestCity.CityName, transitMode, int(distance)),
-				Distance:      distance,
-				CO2Emitted:    co2Emitted,
-				NumSegment:    numSegment,
-				IsOutward:     isOutbound,
+				DepartureId:        stepDepCity.CityID,
+				DestinationId:      stepDestCity.CityID,
+				DepartureCity:      stepDepCity.CityName,
+				DepartureCountry:   departureCountry,
+				DestinationCity:    stepDestCity.CityName,
+				DestinationCountry: destinationCountry,
+				Date:               time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
+				Hour:               time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
+				Duration:           time.Duration(step.Duration.Value) * time.Second,
+				Vehicle:            travelMode,
+				Description:        step.TransitDetails.Line.ShortName + ", " + step.TransitDetails.Line.Name,
+				Price:              GetTransitCost(stepDepCity.CityName, stepDestCity.CityName, transitMode, int(distance)),
+				Distance:           distance,
+				CO2Emitted:         co2Emitted,
+				NumSegment:         numSegment,
+				IsOutward:          isOutbound,
 				// travel id set later
 			}
 		}
@@ -618,18 +657,22 @@ func compactTransitSegments(segments []model.Segment) []model.Segment {
 			if lastIsWalk {
 				compactedSegments = append(compactedSegments, model.Segment{
 					// id is autoincrement
-					DepartureId:   -1, // updated at the end
-					DestinationId: -1, // updated at the end
-					Date:          time.Unix(0, 0),
-					Hour:          time.Unix(0, 0),
-					Duration:      totDuration,
-					Vehicle:       "walk",
-					Description:   "",
-					Price:         0,
-					Distance:      totDistance,
-					CO2Emitted:    0,
-					NumSegment:    -1,
-					IsOutward:     isOutward,
+					DepartureId:        -1, // updated at the end
+					DestinationId:      -1, // updated at the end
+					DepartureCity:      "", // updated at the end
+					DepartureCountry:   "", // updated at the end
+					DestinationCity:    "", // updated at the end
+					DestinationCountry: "", // updated at the end
+					Date:               time.Unix(0, 0),
+					Hour:               time.Unix(0, 0),
+					Duration:           totDuration,
+					Vehicle:            "walk",
+					Description:        "",
+					Price:              0,
+					Distance:           totDistance,
+					CO2Emitted:         0,
+					NumSegment:         -1,
+					IsOutward:          isOutward,
 					// travel id set later
 				})
 
