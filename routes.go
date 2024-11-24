@@ -12,7 +12,7 @@ func SetupRoutes() {
 	http.HandleFunc("/users", handlers.HandleUsers)
 	http.HandleFunc("/users/", handlers.HandleModifyUser)
 
-	http.HandleFunc("/travels/fromto", handlers.HandleTravelsFromTo)
+	http.HandleFunc("/travels/search", handlers.HandleSearchTravel)
 	http.HandleFunc("/travels/user", handlers.HandleTravelsUser)
 	http.HandleFunc("/travels/user/", handlers.HandleModifyTravel)
 

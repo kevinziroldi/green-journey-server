@@ -18,7 +18,7 @@ type TravelOptions struct {
 	Options [][]model.Segment `json:"options"`
 }
 
-func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
+func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		log.Println("Method not supported")
 		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
@@ -26,66 +26,36 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get request parameters
-	from := r.URL.Query().Get("from")
-	if from == "" {
-		log.Println("Missing departure city value")
-		http.Error(w, "Missing departure city value", http.StatusBadRequest)
+
+	// departure
+	iataDeparture := r.URL.Query().Get("iata_departure")
+	if iataDeparture == "" {
+		log.Println("Missing departure city iata")
+		http.Error(w, "Missing departure city iata", http.StatusBadRequest)
 		return
 	}
-	to := r.URL.Query().Get("to")
-	if to == "" {
-		log.Println("Missing arrival city value")
-		http.Error(w, "Missing arrival city value", http.StatusBadRequest)
+	countryCodeDeparture := r.URL.Query().Get("country_code_departure")
+	if countryCodeDeparture == "" {
+		log.Println("Missing departure country code")
+		http.Error(w, "Missing departure country code", http.StatusBadRequest)
 		return
 	}
-	fromLatitudeStr := r.URL.Query().Get("from_latitude")
-	if fromLatitudeStr == "" {
-		log.Println("Missing departure city latitude value")
-		http.Error(w, "Missing departure city latitude value", http.StatusBadRequest)
+
+	// destination
+	iataDestination := r.URL.Query().Get("iata_destination")
+	if iataDestination == "" {
+		log.Println("Missing destination city iata")
+		http.Error(w, "Missing destination city iata", http.StatusBadRequest)
 		return
 	}
-	fromLatitude, err := strconv.ParseFloat(fromLatitudeStr, 64)
-	if err != nil {
-		log.Println("Invalid departure city latitude value:", err)
-		http.Error(w, "Invalid departure city latitude value", http.StatusBadRequest)
+	countryCodeDestination := r.URL.Query().Get("country_code_destination")
+	if countryCodeDestination == "" {
+		log.Println("Missing destination country code")
+		http.Error(w, "Missing destination country code", http.StatusBadRequest)
 		return
 	}
-	fromLongitudeStr := r.URL.Query().Get("from_longitude")
-	if fromLongitudeStr == "" {
-		log.Println("Missing departure city longitude value")
-		http.Error(w, "Missing departure city longitude value", http.StatusBadRequest)
-		return
-	}
-	fromLongitude, err := strconv.ParseFloat(fromLongitudeStr, 64)
-	if err != nil {
-		log.Println("Invalid departure city longitude value:", err)
-		http.Error(w, "Invalid departure city longitude value", http.StatusBadRequest)
-		return
-	}
-	toLatitudeStr := r.URL.Query().Get("to_latitude")
-	if toLatitudeStr == "" {
-		log.Println("Missing arrival city latitude value")
-		http.Error(w, "Missing arrival city latitude value", http.StatusBadRequest)
-		return
-	}
-	toLatitude, err := strconv.ParseFloat(toLatitudeStr, 64)
-	if err != nil {
-		log.Println("Invalid departure city latitude value:", err)
-		http.Error(w, "Invalid departure city latitude value", http.StatusBadRequest)
-		return
-	}
-	toLongitudeStr := r.URL.Query().Get("to_longitude")
-	if toLongitudeStr == "" {
-		log.Println("Missing arrival city longitude value")
-		http.Error(w, "Missing arrival city longitude value", http.StatusBadRequest)
-		return
-	}
-	toLongitude, err := strconv.ParseFloat(toLongitudeStr, 64)
-	if err != nil {
-		log.Println("Invalid arrival city longitude value:", err)
-		http.Error(w, "Invalid arrival city longitude value", http.StatusBadRequest)
-		return
-	}
+
+	// date
 	departureDate, err := time.Parse("2006-01-02", r.URL.Query().Get("date"))
 	if err != nil {
 		log.Println("Wrong date format: ", err)
@@ -99,6 +69,7 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// outward or not
 	isOutward, err := strconv.ParseBool(r.URL.Query().Get("is_outward"))
 	if err != nil {
 		log.Println("Wrong isOutward format: ", err)
@@ -106,9 +77,25 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get departure city
+	cityDAO := db.NewCityDAO(db.GetDB())
+	departureCity, err := cityDAO.GetCityByIataAndCountryCode(iataDeparture, countryCodeDeparture)
+	if err != nil || departureCity.CityIata == nil {
+		log.Println("Departure city not found: ", err)
+		http.Error(w, "Departure city not found", http.StatusBadRequest)
+		return
+	}
+	// get destination city
+	destinationCity, err := cityDAO.GetCityByIataAndCountryCode(iataDestination, countryCodeDestination)
+	if err != nil || destinationCity.CityIata == nil {
+		log.Println("Destination city not found: ", err)
+		http.Error(w, "Destination city not found", http.StatusBadRequest)
+		return
+	}
+
 	// call all apis and return data
 	// always retrieve outward data
-	travelOptions := ComputeApiData(from, to, fromLatitude, fromLongitude, toLatitude, toLongitude, departureDate, departureTime, isOutward)
+	travelOptions := ComputeApiData(departureCity, destinationCity, departureDate, departureTime, isOutward)
 
 	// build response
 	response := TravelOptions{
@@ -123,12 +110,11 @@ func HandleTravelsFromTo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ComputeApiData(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date, t time.Time, isOutward bool) [][]model.Segment {
+func ComputeApiData(departureCity, destinationCity model.City, date, t time.Time, isOutward bool) [][]model.Segment {
 	var apiData [][]model.Segment
 
 	// plane data
-	// must be first, because it needs api data
-	directionsPlane, err := externals.GetFlights(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, isOutward)
+	directionsPlane, err := externals.GetFlights(departureCity, destinationCity, date, isOutward)
 	if err == nil && directionsPlane != nil {
 		for i := range directionsPlane {
 			if directionsPlane[i] != nil {
@@ -138,25 +124,25 @@ func ComputeApiData(originName, destinationName string, originLatitude, originLo
 	}
 
 	// bike data
-	directionsBike, err := externals.GetDirectionsBike(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
+	directionsBike, err := externals.GetDirectionsBike(departureCity, destinationCity, date, t, isOutward)
 	if err == nil && directionsBike != nil {
 		apiData = append(apiData, directionsBike)
 	}
 
 	// car data
-	directionsCar, err := externals.GetDirectionsCar(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
+	directionsCar, err := externals.GetDirectionsCar(departureCity, destinationCity, date, t, isOutward)
 	if err == nil && directionsCar != nil {
 		apiData = append(apiData, directionsCar)
 	}
 
 	// train data
-	directionsTrain, err := externals.GetDirectionsTrain(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
+	directionsTrain, err := externals.GetDirectionsTrain(departureCity, destinationCity, date, t, isOutward)
 	if err == nil && directionsTrain != nil {
 		apiData = append(apiData, directionsTrain)
 	}
 
 	// bus data
-	directionsBus, err := externals.GetDirectionsBus(originName, destinationName, originLatitude, originLongitude, destinationLatitude, destinationLongitude, date, t, isOutward)
+	directionsBus, err := externals.GetDirectionsBus(departureCity, destinationCity, date, t, isOutward)
 	if err == nil && directionsBus != nil {
 		apiData = append(apiData, directionsBus)
 	}
@@ -259,18 +245,17 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 	cityDAO := db.NewCityDAO(db.GetDB())
 	for _, segment := range travelDetails.Segments {
 		if segment.Vehicle != "walk" {
-			// check departure city
-			departureCity, err1 := cityDAO.GetCityById(segment.DepartureId)
-			if err1 != nil || segment.DepartureCity != departureCity.CityName {
-				log.Println("Invalid departure city data")
-				http.Error(w, "Invalid departure city data", http.StatusBadRequest)
+			// check existing departure and destination cities
+			_, err1 := cityDAO.GetCityById(segment.DepartureId)
+			if err1 != nil {
+				log.Println("Invalid departure city id")
+				http.Error(w, "Invalid departure city id", http.StatusBadRequest)
 				return
 			}
-			// check destination city
-			destinationCity, err1 := cityDAO.GetCityById(segment.DestinationId)
-			if err1 != nil || segment.DestinationCity != destinationCity.CityName {
-				log.Println("Invalid destination city data")
-				http.Error(w, "Invalid destination city data", http.StatusBadRequest)
+			_, err1 = cityDAO.GetCityById(segment.DestinationId)
+			if err1 != nil {
+				log.Println("Invalid destination city id")
+				http.Error(w, "Invalid destination city id", http.StatusBadRequest)
 				return
 			}
 		}

@@ -150,17 +150,7 @@ func InitGoogleMapsApi() {
 	googleApiKey = os.Getenv("GOOGLE_MAPS_API_KEY")
 }
 
-func GetDirectionsBike(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date time.Time, hour time.Time, isOutbound bool) ([]model.Segment, error) {
-	// get cities (with or without iata)
-	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude, false)
-	if err != nil {
-		return nil, err
-	}
-	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude, false)
-	if err != nil {
-		return nil, err
-	}
-
+func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, hour time.Time, isOutbound bool) ([]model.Segment, error) {
 	// distance matrix api url
 	baseURL := "https://maps.googleapis.com/maps/api/distancematrix/json"
 
@@ -177,6 +167,8 @@ func GetDirectionsBike(originName, destinationName string, originLatitude, origi
 	params.Add("key", googleApiKey)
 
 	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	fmt.Println(fullURL)
 
 	resp, err := http.Get(fullURL)
 	if err != nil {
@@ -195,6 +187,8 @@ func GetDirectionsBike(originName, destinationName string, originLatitude, origi
 		log.Println("error reading the body: ", err)
 		return nil, err
 	}
+
+	fmt.Println(string(body))
 
 	// check response status code
 	if resp.StatusCode != http.StatusOK {
@@ -222,50 +216,27 @@ func GetDirectionsBike(originName, destinationName string, originLatitude, origi
 	}
 	distance := response.Rows[0].Elements[0].Distance.Value / 1000
 
-	departureCountry := ""
-	if originCity.CountryName != nil {
-		departureCountry = *originCity.CountryName
-	}
-	destinationCountry := ""
-	if destinationCity.CountryName != nil {
-		destinationCountry = *destinationCity.CountryName
-	}
-
 	segment := model.Segment{
 		// id auto increment
-		DepartureId:        originCity.CityID,
-		DestinationId:      destinationCity.CityID,
-		DepartureCity:      originCity.CityName,
-		DepartureCountry:   departureCountry,
-		DestinationCity:    destinationCity.CityName,
-		DestinationCountry: destinationCountry,
-		Date:               date,
-		Hour:               hour,
-		Duration:           time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
-		Vehicle:            "bike",
-		Description:        "",
-		Price:              0,
-		CO2Emitted:         0,
-		Distance:           float64(distance),
-		NumSegment:         1,
-		IsOutward:          isOutbound,
-		TravelID:           -1,
+		DepartureId:   originCity.CityID,
+		DestinationId: destinationCity.CityID,
+		Date:          date,
+		Hour:          hour,
+		Duration:      time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
+		Vehicle:       "bike",
+		Description:   "",
+		Price:         0,
+		CO2Emitted:    0,
+		Distance:      float64(distance),
+		NumSegment:    1,
+		IsOutward:     isOutbound,
+		TravelID:      -1,
 	}
 
 	return []model.Segment{segment}, nil
 }
 
-func GetDirectionsCar(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date time.Time, hour time.Time, isOutbound bool) ([]model.Segment, error) {
-	// get cities (with or without iata)
-	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude, false)
-	if err != nil {
-		return nil, err
-	}
-	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude, false)
-	if err != nil {
-		return nil, err
-	}
-
+func GetDirectionsCar(originCity, destinationCity model.City, date time.Time, hour time.Time, isOutbound bool) ([]model.Segment, error) {
 	// distance matrix api url
 	baseURL := "https://maps.googleapis.com/maps/api/distancematrix/json"
 
@@ -332,50 +303,27 @@ func GetDirectionsCar(originName, destinationName string, originLatitude, origin
 	fuelCostPerLiter := GetFuelCostPerLiter(originCity.CityName)
 	tollCost := GetTollCost(originCity.CityName, destinationCity.CityName, distance)
 
-	departureCountry := ""
-	if originCity.CountryName != nil {
-		departureCountry = *originCity.CountryName
-	}
-	destinationCountry := ""
-	if destinationCity.CountryName != nil {
-		destinationCountry = *destinationCity.CountryName
-	}
-
 	segment := model.Segment{
 		// id auto increment
-		DepartureId:        originCity.CityID,
-		DestinationId:      destinationCity.CityID,
-		DepartureCity:      originCity.CityName,
-		DepartureCountry:   departureCountry,
-		DestinationCity:    destinationCity.CityName,
-		DestinationCountry: destinationCountry,
-		Date:               date,
-		Hour:               hour,
-		Duration:           time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
-		Vehicle:            "car",
-		Description:        "",
-		Price:              internals.ComputeCarPrice(fuelCostPerLiter, float64(distance), tollCost),
-		CO2Emitted:         internals.ComputeCarEmission(distance),
-		Distance:           float64(response.Rows[0].Elements[0].Distance.Value) / 1000,
-		NumSegment:         1,
-		IsOutward:          isOutbound,
-		TravelID:           -1,
+		DepartureId:   originCity.CityID,
+		DestinationId: destinationCity.CityID,
+		Date:          date,
+		Hour:          hour,
+		Duration:      time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
+		Vehicle:       "car",
+		Description:   "",
+		Price:         internals.ComputeCarPrice(fuelCostPerLiter, float64(distance), tollCost),
+		CO2Emitted:    internals.ComputeCarEmission(distance),
+		Distance:      float64(response.Rows[0].Elements[0].Distance.Value) / 1000,
+		NumSegment:    1,
+		IsOutward:     isOutbound,
+		TravelID:      -1,
 	}
 
 	return []model.Segment{segment}, nil
 }
 
-func GetDirectionsTrain(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date, hour time.Time, isOutbound bool) ([]model.Segment, error) {
-	// get cities (with or without iata)
-	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude, false)
-	if err != nil {
-		return nil, err
-	}
-	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude, false)
-	if err != nil {
-		return nil, err
-	}
-
+func GetDirectionsTrain(originCity, destinationCity model.City, date, hour time.Time, isOutbound bool) ([]model.Segment, error) {
 	// google directions api
 	baseURL := "https://maps.googleapis.com/maps/api/directions/json"
 
@@ -429,17 +377,7 @@ func GetDirectionsTrain(originName, destinationName string, originLatitude, orig
 	return segments, nil
 }
 
-func GetDirectionsBus(originName, destinationName string, originLatitude, originLongitude, destinationLatitude, destinationLongitude float64, date, hour time.Time, isOutbound bool) ([]model.Segment, error) {
-	// get cities (with or without iata)
-	originCity, err := GetCityNoIata(originName, originLatitude, originLongitude, false)
-	if err != nil {
-		return nil, err
-	}
-	destinationCity, err := GetCityNoIata(destinationName, destinationLatitude, destinationLongitude, false)
-	if err != nil {
-		return nil, err
-	}
-
+func GetDirectionsBus(originCity, destinationCity model.City, date, hour time.Time, isOutbound bool) ([]model.Segment, error) {
 	// google directions api
 	baseURL := "https://maps.googleapis.com/maps/api/directions/json"
 
@@ -537,22 +475,18 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 
 			segment = model.Segment{
 				// id is autoincrement
-				DepartureId:        -1, // updated at the end
-				DestinationId:      -1, // updated at the end
-				DepartureCity:      "", // updated at the end
-				DestinationCity:    "", // updated at the end
-				DepartureCountry:   "", // updated at the end
-				DestinationCountry: "", // updated at the end
-				Date:               time.Unix(0, 0),
-				Hour:               time.Unix(0, 0),
-				Duration:           time.Duration(duration) * time.Second,
-				Vehicle:            "walk",
-				Description:        "",
-				Price:              0,
-				Distance:           distance,
-				CO2Emitted:         0,
-				NumSegment:         numSegment,
-				IsOutward:          isOutbound,
+				DepartureId:   -1, // updated at the end
+				DestinationId: -1, // updated at the end
+				Date:          time.Unix(0, 0),
+				Hour:          time.Unix(0, 0),
+				Duration:      time.Duration(duration) * time.Second,
+				Vehicle:       "walk",
+				Description:   "",
+				Price:         0,
+				Distance:      distance,
+				CO2Emitted:    0,
+				NumSegment:    numSegment,
+				IsOutward:     isOutbound,
 				// travel id set later
 			}
 		} else {
@@ -597,11 +531,11 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 			returnedTime := time.Unix(step.TransitDetails.DepartureTime.Value, 0)
 			distance := float64(step.Distance.Value) / 1000
 
-			stepDepCity, err1 := GetCityNoIata(step.TransitDetails.DepartureStop.Name, step.TransitDetails.DepartureStop.Location.Latitude, step.TransitDetails.DepartureStop.Location.Longitude, true)
+			stepDepCity, err1 := getCityNoIata(step.TransitDetails.DepartureStop.Name)
 			if err1 != nil {
 				return nil, err1
 			}
-			stepDestCity, err1 := GetCityNoIata(step.TransitDetails.ArrivalStop.Name, step.TransitDetails.ArrivalStop.Location.Latitude, step.TransitDetails.ArrivalStop.Location.Longitude, true)
+			stepDestCity, err1 := getCityNoIata(step.TransitDetails.ArrivalStop.Name)
 			if err1 != nil {
 				return nil, err1
 			}
@@ -613,34 +547,21 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 				co2Emitted = internals.ComputeBusEmission(int(distance))
 			}
 
-			departureCountry := ""
-			if stepDepCity.CountryName != nil {
-				departureCountry = *stepDepCity.CountryName
-			}
-			destinationCountry := ""
-			if stepDestCity.CountryName != nil {
-				destinationCountry = *stepDestCity.CountryName
-			}
-
 			// create segment
 			segment = model.Segment{
 				// id is autoincrement
-				DepartureId:        stepDepCity.CityID,
-				DestinationId:      stepDestCity.CityID,
-				DepartureCity:      stepDepCity.CityName,
-				DepartureCountry:   departureCountry,
-				DestinationCity:    stepDestCity.CityName,
-				DestinationCountry: destinationCountry,
-				Date:               time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
-				Hour:               time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
-				Duration:           time.Duration(step.Duration.Value) * time.Second,
-				Vehicle:            travelMode,
-				Description:        step.TransitDetails.Line.ShortName + ", " + step.TransitDetails.Line.Name,
-				Price:              GetTransitCost(stepDepCity.CityName, stepDestCity.CityName, transitMode, int(distance)),
-				Distance:           distance,
-				CO2Emitted:         co2Emitted,
-				NumSegment:         numSegment,
-				IsOutward:          isOutbound,
+				DepartureId:   stepDepCity.CityID,
+				DestinationId: stepDestCity.CityID,
+				Date:          time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
+				Hour:          time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
+				Duration:      time.Duration(step.Duration.Value) * time.Second,
+				Vehicle:       travelMode,
+				Description:   step.TransitDetails.Line.ShortName + ", " + step.TransitDetails.Line.Name,
+				Price:         GetTransitCost(stepDepCity.CityName, stepDestCity.CityName, transitMode, int(distance)),
+				Distance:      distance,
+				CO2Emitted:    co2Emitted,
+				NumSegment:    numSegment,
+				IsOutward:     isOutbound,
 				// travel id set later
 			}
 		}
@@ -656,18 +577,12 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 	return segments, nil
 }
 
+// method that sets the first city and the last city to origin and destination city (first class cities)
 func resetDepDestCity(segments []model.Segment, originCity, destinationCity model.City) []model.Segment {
 	// set departure
 	for i, segment := range segments {
 		if segment.Vehicle != "walk" {
 			segments[i].DepartureId = originCity.CityID
-			segments[i].DepartureCity = originCity.CityName
-			if originCity.CountryName != nil {
-				segments[i].DepartureCountry = *originCity.CountryName
-			} else {
-				segments[i].DepartureCountry = ""
-			}
-
 			// exit after the first non-walking segment
 			break
 		}
@@ -677,13 +592,6 @@ func resetDepDestCity(segments []model.Segment, originCity, destinationCity mode
 	for i := len(segments) - 1; i >= 0; i-- {
 		if segments[i].Vehicle != "walk" {
 			segments[i].DestinationId = destinationCity.CityID
-			segments[i].DestinationCity = destinationCity.CityName
-			if destinationCity.CountryName != nil {
-				segments[i].DestinationCountry = *destinationCity.CountryName
-			} else {
-				segments[i].DestinationCountry = ""
-			}
-
 			// exit after the first non-walking segment
 			break
 		}
@@ -710,22 +618,18 @@ func compactTransitSegments(segments []model.Segment) []model.Segment {
 			if lastIsWalk {
 				compactedSegments = append(compactedSegments, model.Segment{
 					// id is autoincrement
-					DepartureId:        -1, // updated at the end
-					DestinationId:      -1, // updated at the end
-					DepartureCity:      "", // updated at the end
-					DepartureCountry:   "", // updated at the end
-					DestinationCity:    "", // updated at the end
-					DestinationCountry: "", // updated at the end
-					Date:               time.Unix(0, 0),
-					Hour:               time.Unix(0, 0),
-					Duration:           totDuration,
-					Vehicle:            "walk",
-					Description:        "",
-					Price:              0,
-					Distance:           totDistance,
-					CO2Emitted:         0,
-					NumSegment:         -1,
-					IsOutward:          isOutward,
+					DepartureId:   -1, // updated at the end
+					DestinationId: -1, // updated at the end
+					Date:          time.Unix(0, 0),
+					Hour:          time.Unix(0, 0),
+					Duration:      totDuration,
+					Vehicle:       "walk",
+					Description:   "",
+					Price:         0,
+					Distance:      totDistance,
+					CO2Emitted:    0,
+					NumSegment:    -1,
+					IsOutward:     isOutward,
 					// travel id set later
 				})
 
@@ -752,32 +656,16 @@ func compactTransitSegments(segments []model.Segment) []model.Segment {
 func setMissingDataWalkingSegments(segments []model.Segment, originCity, destinationCity model.City) []model.Segment {
 	for i, _ := range segments {
 		if segments[i].Vehicle == "walk" {
-			// set departure and departure id
+			// set departure and destination city id
 			if segments[i].NumSegment == 1 {
 				segments[i].DepartureId = originCity.CityID
-				segments[i].DepartureCity = originCity.CityName
-				segments[i].DepartureCountry = ""
-				if originCity.CountryName != nil {
-					segments[i].DepartureCountry = *originCity.CountryName
-				}
 			} else {
 				segments[i].DepartureId = segments[i-1].DestinationId
-				segments[i].DepartureCity = segments[i-1].DestinationCity
-				segments[i].DepartureCountry = segments[i-1].DestinationCountry
 			}
-
-			// set destination and destination id
 			if segments[i].NumSegment == len(segments) {
 				segments[i].DestinationId = destinationCity.CityID
-				segments[i].DestinationCity = destinationCity.CityName
-				segments[i].DestinationCountry = ""
-				if destinationCity.CountryName != nil {
-					segments[i].DestinationCountry = *destinationCity.CountryName
-				}
 			} else {
 				segments[i].DestinationId = segments[i+1].DepartureId
-				segments[i].DestinationCity = segments[i+1].DepartureCity
-				segments[i].DestinationCountry = segments[i+1].DepartureCountry
 			}
 
 			// compute date and hour
@@ -804,38 +692,25 @@ func setMissingDataWalkingSegments(segments []model.Segment, originCity, destina
 	return segments
 }
 
-func GetCityNoIata(name string, latitude, longitude float64, exact bool) (model.City, error) {
+func getCityNoIata(cityName string) (model.City, error) {
 	cityDAO := db.NewCityDAO(db.GetDB())
 
 	// check if a city with same name exists
-	city, err := cityDAO.GetCityByName(name, latitude, longitude)
+	city, err := cityDAO.GetCityByName(cityName)
 	if err == nil {
 		return city, nil
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return model.City{}, err
 	}
 
-	// if not exact
-	if !exact {
-		// check if a city with nearly same coordinates exists
-		deltaCoordinates := 0.3
-		city, err = cityDAO.GetCityByCoordinates(latitude, longitude, deltaCoordinates)
-		if err == nil {
-			return city, nil
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return model.City{}, err
-		}
-	}
-
-	// create a city without iata
+	// else create a city without iata
 	city = model.City{
 		// id autogenerated
-		CityName:    name,
+		CityIata:    nil,
+		CityName:    cityName,
 		CountryName: nil,
 		CountryCode: nil,
-		Iata:        nil,
-		Latitude:    latitude,
-		Longitude:   longitude,
+		Continent:   nil,
 	}
 
 	err = cityDAO.CreateCity(&city)

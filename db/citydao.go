@@ -3,9 +3,7 @@ package db
 import (
 	"fmt"
 	"gorm.io/gorm"
-	"green-journey-server/internals"
 	"green-journey-server/model"
-	"math"
 )
 
 type CityDAO struct {
@@ -34,74 +32,35 @@ func (cityDAO *CityDAO) GetCityById(cityID int) (model.City, error) {
 	return city, result.Error
 }
 
-func (cityDAO *CityDAO) GetCityByName(name string, targetLatitude, targetLongitude float64) (model.City, error) {
-	var cities []model.City
+// GetCityByIataAndCountryCode the city iata and the country code can identify the city uniquely
+func (cityDAO *CityDAO) GetCityByIataAndCountryCode(cityIata, countryCode string) (model.City, error) {
+	var city model.City
+
+	result := cityDAO.db.Where("city_iata = ? AND country_code = ?", cityIata, countryCode).First(&city)
+	if result.Error != nil {
+		return model.City{}, result.Error
+	}
+
+	return city, nil
+}
+
+// GetCityByName used for second class cities, i.e. cities that represent an intermedia stop
+// for a transit travel
+func (cityDAO *CityDAO) GetCityByName(name string) (model.City, error) {
+	var city model.City
 
 	// get all cities with provided name
-	result := cityDAO.db.Where("city_name = ?", name).Find(&cities)
+	result := cityDAO.db.Where("city_name = ?", name).First(&city)
 	if result.Error != nil {
 		return model.City{}, result.Error
 	}
-	if len(cities) == 0 {
-		return model.City{}, gorm.ErrRecordNotFound
-	}
-
-	// choose the closest city to (targetLatitude, targetLongitude)
-	minDistance := math.MaxFloat64
-	var city model.City
-
-	for _, currCity := range cities {
-		distance := internals.ComputeHaversineDistance(targetLatitude, targetLongitude, currCity.Latitude, currCity.Longitude)
-		if distance < minDistance {
-			minDistance = distance
-			city = currCity
-		}
-	}
-
 	return city, nil
 }
 
-func (cityDAO *CityDAO) GetCityByCoordinates(latitude, longitude, delta float64) (model.City, error) {
-	var cities []model.City
-
-	minLatitude := latitude - delta
-	maxLatitude := latitude + delta
-	minLongitude := longitude - delta
-	maxLongitude := longitude + delta
-
-	query := fmt.Sprintf(
-		"(latitude - %f)*(latitude - %f) + (longitude - %f)*(longitude - %f)",
-		latitude, latitude, longitude, longitude,
-	)
-
-	result := cityDAO.db.Where("latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ?", minLatitude, maxLatitude, minLongitude, maxLongitude).Order(query).Find(&cities)
-	if result.Error != nil {
-		return model.City{}, result.Error
-	}
-	if len(cities) == 0 {
-		return model.City{}, gorm.ErrRecordNotFound
-	}
-
-	// return first city with IATA
-	for _, currCity := range cities {
-		if currCity.Iata != nil {
-			return currCity, nil
-		}
-	}
-	// or first city (without IATA)
-
-	return cities[0], nil
-}
-
-func (cityDAO *CityDAO) GetCityByCityIata(cityIata string) (model.City, error) {
-	var city model.City
-
-	result := cityDAO.db.Where("city_iata = ?", cityIata).First(&city)
-	if result.Error != nil {
-		return model.City{}, result.Error
-	}
-
-	return city, nil
+func (cityDAO *CityDAO) GetAirportByAirportIata(airportIata string) (model.Airport, error) {
+	var airport model.Airport
+	result := cityDAO.db.Where("airport_iata = ?", airportIata).First(&airport)
+	return airport, result.Error
 }
 
 func (cityDAO *CityDAO) GetCityByAirportIata(airportIata string) (model.City, error) {
@@ -135,15 +94,4 @@ func (cityDAO *CityDAO) UpdateCityById(cityID int, fields map[string]interface{}
 	}
 
 	return city, nil
-}
-
-func (cityDAO *CityDAO) GetAirportByIata(iata string) (model.Airport, error) {
-	var airport model.Airport
-
-	result := cityDAO.db.Where("airport_iata = ?", iata).First(&airport)
-	if result.Error != nil {
-		return model.Airport{}, result.Error
-	}
-
-	return airport, nil
 }
