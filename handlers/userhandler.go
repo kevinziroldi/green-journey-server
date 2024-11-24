@@ -82,7 +82,8 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 	if user.FirstName == "" ||
 		user.LastName == "" ||
 		user.FirebaseUID == "" ||
-		user.Score != 0 {
+		user.ScoreShortDistance != 0 ||
+		user.ScoreLongDistance != 0 {
 		log.Println("Missing required fields")
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
@@ -203,7 +204,8 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 	}
 	// check data that can't be changed from the client
 	if existingUser.FirebaseUID != user.FirebaseUID ||
-		existingUser.Score != user.Score {
+		existingUser.ScoreShortDistance != user.ScoreShortDistance ||
+		existingUser.ScoreLongDistance != user.ScoreLongDistance {
 		log.Println("Provided data can't be changed by the client: ", err)
 		http.Error(w, "Provided data can't be changed by the client", http.StatusBadRequest)
 		return

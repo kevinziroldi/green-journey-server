@@ -107,7 +107,7 @@ func (travelDAO *TravelDAO) GetTravelDetailsByTravelID(travelID int) (model.Trav
 	return model.TravelDetails{Travel: travel, Segments: segments}, nil
 }
 
-func (travelDAO *TravelDAO) UpdateTravel(travel model.Travel, deltaScore float64) error {
+func (travelDAO *TravelDAO) UpdateTravel(travel model.Travel, deltaScore float64, isShortDistance bool) error {
 	// create transaction
 	transaction := db.Begin()
 	if transaction.Error != nil {
@@ -137,7 +137,11 @@ func (travelDAO *TravelDAO) UpdateTravel(travel model.Travel, deltaScore float64
 	if deltaScore < 0.0 {
 		return err
 	}
-	user.Score += deltaScore
+	if isShortDistance {
+		user.ScoreShortDistance += deltaScore
+	} else {
+		user.ScoreLongDistance += deltaScore
+	}
 	result = transaction.Save(&user)
 	if result.Error != nil {
 		return result.Error
@@ -152,7 +156,7 @@ func (travelDAO *TravelDAO) UpdateTravel(travel model.Travel, deltaScore float64
 	return nil
 }
 
-func (travelDAO *TravelDAO) DeleteTravel(travelID int, deltaScore float64) error {
+func (travelDAO *TravelDAO) DeleteTravel(travelID int, deltaScore float64, isShortDistance bool) error {
 	// create transaction
 	transaction := db.Begin()
 	if transaction.Error != nil {
@@ -195,7 +199,11 @@ func (travelDAO *TravelDAO) DeleteTravel(travelID int, deltaScore float64) error
 		return err1
 	}
 
-	user.Score -= deltaScore
+	if isShortDistance {
+		user.ScoreShortDistance -= deltaScore
+	} else {
+		user.ScoreLongDistance -= deltaScore
+	}
 	result = transaction.Save(&user)
 	if result.Error != nil {
 		return result.Error

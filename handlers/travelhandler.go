@@ -23,6 +23,9 @@ const travelCoefficient = 10.0
 const compensationCoefficient = 10.0
 const bonusScore = 100.0
 
+// travels <= 800 km are short, > 800 km are long
+const distanceBoundary = 800
+
 func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		log.Println("Method not supported")
@@ -447,7 +450,7 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deltaScore, err := computeDeltaTravelModify(travel, co2Compensated, confirmed)
+	deltaScore, isShortDistance, err := computeDeltaTravelModify(travel, co2Compensated, confirmed)
 	if err != nil {
 		log.Println("Error computing the score to be added: ", err)
 		http.Error(w, "Error computing the score to be added", http.StatusBadRequest)
@@ -455,7 +458,7 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update travel in db
-	err = travelDAO.UpdateTravel(travel, deltaScore)
+	err = travelDAO.UpdateTravel(travel, deltaScore, isShortDistance)
 	if err != nil {
 		log.Println("Error interacting with the db: ", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -472,13 +475,13 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confirmed bool) (float64, error) {
+func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confirmed bool) (float64, bool, error) {
 	deltaScore := 0.0
 
 	travelDAO := db.NewTravelDAO(db.GetDB())
 	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(travel.TravelID)
 	if err != nil {
-		return 0, err
+		return 0, true, err
 	}
 
 	// compute total distance and co2 emitted
@@ -487,6 +490,13 @@ func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confi
 	for _, segment := range travelDetails.Segments {
 		totalDistance += segment.Distance
 		totalCO2Emitted += segment.CO2Emitted
+	}
+
+	var isShortDistance bool
+	if totalDistance <= distanceBoundary {
+		isShortDistance = true
+	} else {
+		isShortDistance = false
 	}
 
 	if !travel.Confirmed && confirmed {
@@ -501,16 +511,16 @@ func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confi
 		}
 	}
 
-	return deltaScore, nil
+	return deltaScore, isShortDistance, nil
 }
 
-func computeDeltaTravelDelete(travel model.Travel) (float64, error) {
+func computeDeltaTravelDelete(travel model.Travel) (float64, bool, error) {
 	deltaScore := 0.0
 
 	travelDAO := db.NewTravelDAO(db.GetDB())
 	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(travel.TravelID)
 	if err != nil {
-		return 0, err
+		return 0, true, err
 	}
 
 	// compute total distance and co2 emitted
@@ -521,13 +531,20 @@ func computeDeltaTravelDelete(travel model.Travel) (float64, error) {
 		totalCO2Emitted += segment.CO2Emitted
 	}
 
+	var isShortDistance bool
+	if totalDistance <= distanceBoundary {
+		isShortDistance = true
+	} else {
+		isShortDistance = false
+	}
+
 	deltaScore += travelCoefficient * totalDistance / (0.001 + totalCO2Emitted)
 	deltaScore += compensationCoefficient * travel.CO2Compensated
 	if travel.CO2Compensated == totalCO2Emitted {
 		deltaScore += bonusScore
 	}
 
-	return deltaScore, nil
+	return deltaScore, isShortDistance, nil
 }
 
 // deleting travel from db automatically deletes segments (cascade)
@@ -562,14 +579,14 @@ func deleteTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deltaScore, err := computeDeltaTravelDelete(travel)
+	deltaScore, isShortDistance, err := computeDeltaTravelDelete(travel)
 	if err != nil {
 		log.Println("Error computing the score to be removed: ", err)
 		http.Error(w, "Error computing the score to be removed", http.StatusBadRequest)
 		return
 	}
 
-	err = travelDAO.DeleteTravel(travelID, deltaScore)
+	err = travelDAO.DeleteTravel(travelID, deltaScore, isShortDistance)
 	if err != nil {
 		log.Println("Error interacting with the db: ", err)
 		http.Error(w, "Error interacting with the db", http.StatusBadRequest)
