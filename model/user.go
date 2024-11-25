@@ -13,6 +13,7 @@ type User struct {
 	City               *string `gorm:"column:city;type:text" json:"city"`
 	ScoreShortDistance float64 `gorm:"column:score_short_distance;type:numeric;not null" json:"score_short_distance"`
 	ScoreLongDistance  float64 `gorm:"column:score_long_distance;type:numeric;not null" json:"score_long_distance"`
+	Badges             []Badge `gorm:"-" json:"badges"`
 }
 
 func (User) TableName() string {
