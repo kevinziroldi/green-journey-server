@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"green-journey-server/db"
 	"green-journey-server/model"
@@ -30,17 +31,27 @@ func getUserByFirebaseUID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uid := r.URL.Query().Get("uid")
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
+		return
+	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
 
-	// check id present
-	if uid == "" {
-		log.Println("Firebase uid is missing")
-		http.Error(w, "User id is required", http.StatusBadRequest)
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	// get user associated to firebaseUID
 	userDAO := db.NewUserDAO(db.GetDB())
-	user, err := userDAO.GetUserByFirebaseUID(uid)
+	user, err := userDAO.GetUserByFirebaseUID(firebaseUID)
 	if err != nil {
 		log.Println("User not found: ", err)
 		http.Error(w, "User could not be found", http.StatusNotFound)
@@ -64,6 +75,15 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
+		return
+	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+
 	var user model.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -77,6 +97,22 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error closing request body:", err)
 		}
 	}()
+
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// check user has the right UID
+	if user.FirebaseUID != firebaseUID {
+		log.Println("Unauthorized")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	// check non-empty strings (only for mandatory fields)
 	if user.FirstName == "" ||

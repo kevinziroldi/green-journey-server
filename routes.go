@@ -9,7 +9,7 @@ import (
 
 func SetupRoutes() {
 	// setup routes
-	http.HandleFunc("/users", handlers.HandleUsers)
+	http.HandleFunc("/users/user", handlers.HandleUsers)
 	http.HandleFunc("/users/", handlers.HandleModifyUser)
 
 	http.HandleFunc("/travels/search", handlers.HandleSearchTravel)
