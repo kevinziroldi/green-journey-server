@@ -3,6 +3,7 @@ package main
 import (
 	"green-journey-server/db"
 	"green-journey-server/externals"
+	"green-journey-server/handlers"
 	"green-journey-server/mockservers"
 	"log"
 )
@@ -40,6 +41,9 @@ func main() {
 		log.Fatalf("Failed to get amadeus api access token: %v", err)
 		return
 	}
+
+	// initialize firebase
+	handlers.InitializeFirebase()
 
 	// setup routes
 	SetupRoutes()
