@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"green-journey-server/db"
 	"green-journey-server/externals"
 	"green-journey-server/handlers"
@@ -9,6 +10,10 @@ import (
 )
 
 func main() {
+	// get port from flag
+	port := flag.String("port", "80", "Port on which the server listens")
+	flag.Parse()
+
 	// init db
 	database, err := db.InitDB()
 	if err != nil || database == nil {
@@ -46,5 +51,5 @@ func main() {
 	handlers.InitializeFirebase()
 
 	// setup routes
-	SetupRoutes()
+	SetupRoutes(*port)
 }

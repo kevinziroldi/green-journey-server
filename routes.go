@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func SetupRoutes() {
+func SetupRoutes(port string) {
 	// setup routes
 	http.HandleFunc("/users/user", handlers.HandleUsers)
 	http.HandleFunc("/users/", handlers.HandleModifyUser)
@@ -21,10 +21,10 @@ func SetupRoutes() {
 
 	http.HandleFunc("/ranking", handlers.HandleRanking)
 
-	fmt.Println("Server starting on port 80")
+	fmt.Println("Server starting on port " + port)
 
 	// start server
-	err := http.ListenAndServe(":80", nil)
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		// fatal condition
 		log.Fatalf("Failed to start the server")
