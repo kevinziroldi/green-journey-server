@@ -38,19 +38,12 @@ func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
 	if transaction.Error != nil {
 		return transaction.Error
 	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			transaction.Rollback()
-			panic(r)
-		} else if transaction.Error != nil {
-			transaction.Rollback()
-		}
-	}()
+	// rollback handled manually because I don't always want to rollback
 
 	// save review
 	result := transaction.Create(&review)
 	if result.Error != nil {
+		transaction.Rollback()
 		return result.Error
 	}
 
@@ -59,6 +52,7 @@ func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
 	result = transaction.First(&reviewsAggregated, review.CityID)
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			transaction.Rollback()
 			return result.Error
 		} else {
 			// create the tuple
@@ -73,6 +67,7 @@ func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
 			}
 			result = transaction.Save(&reviewsAggregated)
 			if result.Error != nil {
+				transaction.Rollback()
 				return result.Error
 			}
 		}
@@ -86,38 +81,141 @@ func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
 		reviewsAggregated.SumWasteBinsRating += review.WasteBinsRating
 		result = transaction.Save(&reviewsAggregated)
 		if result.Error != nil {
+			transaction.Rollback()
 			return result.Error
 		}
+	}
+
+	// commit
+	result = transaction.Commit()
+	if result.Error != nil {
+		return result.Error
 	}
 
 	return nil
 }
 
 func (reviewDAO *ReviewDAO) UpdateReview(review model.Review) error {
-	result := reviewDAO.db.Save(&review)
+	// create transaction
+	transaction := db.Begin()
+	if transaction.Error != nil {
+		return transaction.Error
+	}
 
-	// TODO update reviewsaggregated in a transaction:
-	//  count_... remains unchanged
-	//  for every score, sum - old score + new score
-	//  tuple in the table must be present
+	defer func() {
+		if r := recover(); r != nil {
+			transaction.Rollback()
+			panic(r)
+		} else if transaction.Error != nil {
+			transaction.Rollback()
+		}
+	}()
 
-	return result.Error
+	// get reviews aggregated
+	var reviewsAggregated model.ReviewsAggregated
+	result := transaction.First(&reviewsAggregated, review.CityID)
+	if result.Error != nil {
+		// a tuple must be present
+		return result.Error
+	}
+
+	// get old review
+	var oldReview model.Review
+	result = transaction.First(&oldReview, review.ReviewID)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// subtract old values
+	reviewsAggregated.SumLocalTransportRating -= oldReview.LocalTransportRating
+	reviewsAggregated.SumGreenSpacesRating -= oldReview.GreenSpacesRating
+	reviewsAggregated.SumWasteBinsRating -= oldReview.WasteBinsRating
+
+	// update review
+	result = reviewDAO.db.Save(&review)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// sum new values
+	reviewsAggregated.SumLocalTransportRating += review.LocalTransportRating
+	reviewsAggregated.SumGreenSpacesRating += review.GreenSpacesRating
+	reviewsAggregated.SumWasteBinsRating += review.WasteBinsRating
+
+	// update reviewsAggregated
+	result = transaction.Save(&reviewsAggregated)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// commit
+	result = transaction.Commit()
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }
 
 func (reviewDAO *ReviewDAO) DeleteReview(reviewID int) error {
-	result := reviewDAO.db.Delete(&model.Review{}, reviewID)
+	// create transaction
+	transaction := db.Begin()
+	if transaction.Error != nil {
+		return transaction.Error
+	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			transaction.Rollback()
+			panic(r)
+		} else if transaction.Error != nil {
+			transaction.Rollback()
+		}
+	}()
+
+	// get review
+	var review model.Review
+	result := transaction.First(&review, reviewID)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// get reviews aggregated
+	var reviewsAggregated model.ReviewsAggregated
+	result = transaction.First(&reviewsAggregated, review.CityID)
+	if result.Error != nil {
+		// a tuple must be present
+		return result.Error
+	}
+
+	// delete review
+	result = transaction.Delete(&model.Review{}, reviewID)
 	if result.Error != nil {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
+		transaction.Rollback()
 		return errors.New("review not found")
 	}
 
-	// TODO update reviewsaggregated in a transaction:
-	//  for every count_... -1
-	//  for every sum_... - score of the review I am deleting
-	//  tuple in the table must be present
+	// update reviewsAggregated
+	reviewsAggregated.CountLocalTransportRating -= 1
+	reviewsAggregated.CountGreenSpacesRating -= 1
+	reviewsAggregated.CountWasteBinsRating -= 1
+	reviewsAggregated.SumLocalTransportRating -= review.LocalTransportRating
+	reviewsAggregated.SumGreenSpacesRating -= review.GreenSpacesRating
+	reviewsAggregated.SumWasteBinsRating -= review.WasteBinsRating
+
+	result = transaction.Save(&reviewsAggregated)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// commit
+	result = transaction.Commit()
+	if result.Error != nil {
+		return result.Error
+	}
 
 	return nil
 }
