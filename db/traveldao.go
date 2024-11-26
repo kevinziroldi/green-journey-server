@@ -136,6 +136,9 @@ func (travelDAO *TravelDAO) UpdateTravel(travel model.Travel, deltaScore float64
 
 	// save updated travel
 	result := transaction.Save(&travel)
+	if result.Error != nil {
+		return result.Error
+	}
 
 	// update user score
 	userDAO := NewUserDAO(GetDB())
