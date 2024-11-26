@@ -44,16 +44,17 @@ func (cityDAO *CityDAO) GetCityByIataAndCountryCode(cityIata, countryCode string
 	return city, nil
 }
 
-// GetCityByName used for second class cities, i.e. cities that represent an intermedia stop
+// GetCityByNameAndCountry used for second class cities, i.e. cities that represent an intermedia stop
 // for a transit travel
-func (cityDAO *CityDAO) GetCityByName(name string) (model.City, error) {
+func (cityDAO *CityDAO) GetCityByNameAndCountry(cityName, countryName string) (model.City, error) {
 	var city model.City
 
-	// get all cities with provided name
-	result := cityDAO.db.Where("city_name = ?", name).First(&city)
+	// get city by city_name and country_name
+	result := cityDAO.db.Where("city_name = ? AND country_name = ?", cityName, countryName).First(&city)
 	if result.Error != nil {
 		return model.City{}, result.Error
 	}
+
 	return city, nil
 }
 
