@@ -622,6 +622,13 @@ func resetDepDestCity(segments []model.Segment, originCity, destinationCity mode
 	for i, segment := range segments {
 		if segment.Vehicle != "walk" {
 			segments[i].DepartureId = originCity.CityID
+			segments[i].DepartureCity = originCity.CityName
+			if originCity.CountryName != nil {
+				segments[i].DepartureCountry = *originCity.CountryName
+			} else {
+				segments[i].DepartureCountry = ""
+			}
+
 			// exit after the first non-walking segment
 			break
 		}
@@ -631,6 +638,13 @@ func resetDepDestCity(segments []model.Segment, originCity, destinationCity mode
 	for i := len(segments) - 1; i >= 0; i-- {
 		if segments[i].Vehicle != "walk" {
 			segments[i].DestinationId = destinationCity.CityID
+
+			segments[i].DestinationCity = destinationCity.CityName
+			if destinationCity.CountryName != nil {
+				segments[i].DestinationCountry = *destinationCity.CountryName
+			} else {
+				segments[i].DestinationCountry = ""
+			}
 			// exit after the first non-walking segment
 			break
 		}
