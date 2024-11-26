@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"gorm.io/gorm"
@@ -178,17 +179,26 @@ func getTravelsByUserId(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idStr := r.URL.Query().Get("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id < 0 {
-		log.Println("Wrong id value: ", err)
-		http.Error(w, "The provided id is not valid", http.StatusBadRequest)
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
+		return
+	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	userDAO := db.NewUserDAO(db.GetDB())
-
-	_, err = userDAO.GetUserById(id)
+	user, err := userDAO.GetUserByFirebaseUID(firebaseUID)
 	if err != nil {
 		log.Println("User not found: ", err)
 		http.Error(w, "User could not be found", http.StatusNotFound)
@@ -200,7 +210,7 @@ func getTravelsByUserId(w http.ResponseWriter, r *http.Request) {
 	// if I get an empty list, it is not an error
 	// declare empty slice and append, in order to have an empty slice and not nil slice
 	travelRequests := []model.TravelDetails{}
-	travels, err := travelDAO.GetTravelRequestsByUserId(id)
+	travels, err := travelDAO.GetTravelRequestsByUserId(user.UserID)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Println("Error getting travels: ", err)
@@ -226,9 +236,27 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
+		return
+	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	// decode json data
 	var travelDetails model.TravelDetails
-	err := json.NewDecoder(r.Body).Decode(&travelDetails)
+	err = json.NewDecoder(r.Body).Decode(&travelDetails)
 	if err != nil {
 		log.Println("Error decoding JSON: ", err)
 		http.Error(w, "Invalid data format", http.StatusBadRequest)
@@ -240,6 +268,20 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error closing request body:", err)
 		}
 	}()
+
+	// check matching firebaseUID
+	userDAO := db.NewUserDAO(db.GetDB())
+	user, err := userDAO.GetUserById(travelDetails.Travel.UserID)
+	if err != nil {
+		log.Println("User not found", err)
+		http.Error(w, "User not found", http.StatusBadRequest)
+		return
+	}
+	if user.FirebaseUID != firebaseUID {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	// check travel data
 	// check co2 compensated
@@ -380,6 +422,24 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
+		return
+	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	// extract travel id from URI
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
@@ -396,12 +456,28 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get the travel
+	// get travel
 	travelDAO := db.NewTravelDAO(db.GetDB())
 	travel, err := travelDAO.GetTravelById(travelID)
 	if err != nil {
 		log.Println("Travel not found: ", err)
 		http.Error(w, "Travel not found", http.StatusNotFound)
+		return
+	}
+
+	// get user
+	userDAO := db.NewUserDAO(db.GetDB())
+	user, err := userDAO.GetUserById(travel.UserID)
+	if err != nil {
+		log.Println("User not found: ", err)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// check matching firebaseUID
+	if user.FirebaseUID != firebaseUID {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -514,6 +590,90 @@ func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confi
 	return deltaScore, isShortDistance, nil
 }
 
+// deleting travel from db automatically deletes segments (cascade)
+func deleteTravel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "DELETE" {
+		log.Println("Method not supported")
+		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
+		return
+	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// extract travel id from URI
+	path := r.URL.Path
+	parts := strings.Split(path, "/")
+	if len(parts) < 4 || parts[3] == "" {
+		log.Println("Invalid path")
+		http.Error(w, "Travel ID not provided", http.StatusBadRequest)
+		return
+	}
+	travelIDStr := parts[3]
+	travelID, err := strconv.Atoi(travelIDStr)
+	if err != nil || travelID < 0 {
+		log.Println("Invalid travel ID")
+		http.Error(w, "Invalid travel ID", http.StatusBadRequest)
+		return
+	}
+
+	// get travel
+	travelDAO := db.NewTravelDAO(db.GetDB())
+	travel, err := travelDAO.GetTravelById(travelID)
+	if err != nil {
+		log.Println("Invalid travel id")
+		http.Error(w, "Invalid travel ID", http.StatusBadRequest)
+		return
+	}
+
+	// get user
+	userDAO := db.NewUserDAO(db.GetDB())
+	user, err := userDAO.GetUserById(travel.UserID)
+	if err != nil {
+		log.Println("User not found: ", err)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// check matching firebaseUID
+	if user.FirebaseUID != firebaseUID {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	deltaScore, isShortDistance, err := computeDeltaTravelDelete(travel)
+	if err != nil {
+		log.Println("Error computing the score to be removed: ", err)
+		http.Error(w, "Error computing the score to be removed", http.StatusBadRequest)
+		return
+	}
+
+	err = travelDAO.DeleteTravel(travelID, deltaScore, isShortDistance)
+	if err != nil {
+		log.Println("Error interacting with the db: ", err)
+		http.Error(w, "Error interacting with the db", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func computeDeltaTravelDelete(travel model.Travel) (float64, bool, error) {
 	deltaScore := 0.0
 
@@ -545,53 +705,4 @@ func computeDeltaTravelDelete(travel model.Travel) (float64, bool, error) {
 	}
 
 	return deltaScore, isShortDistance, nil
-}
-
-// deleting travel from db automatically deletes segments (cascade)
-func deleteTravel(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "DELETE" {
-		log.Println("Method not supported")
-		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// extract travel id from URI
-	path := r.URL.Path
-	parts := strings.Split(path, "/")
-	if len(parts) < 4 || parts[3] == "" {
-		log.Println("Invalid path")
-		http.Error(w, "Travel ID not provided", http.StatusBadRequest)
-		return
-	}
-	travelIDStr := parts[3]
-	travelID, err := strconv.Atoi(travelIDStr)
-	if err != nil || travelID < 0 {
-		log.Println("Invalid travel ID")
-		http.Error(w, "Invalid travel ID", http.StatusBadRequest)
-		return
-	}
-
-	travelDAO := db.NewTravelDAO(db.GetDB())
-	travel, err := travelDAO.GetTravelById(travelID)
-	if err != nil {
-		log.Println("Invalid travel id")
-		http.Error(w, "Invalid travel ID", http.StatusBadRequest)
-		return
-	}
-
-	deltaScore, isShortDistance, err := computeDeltaTravelDelete(travel)
-	if err != nil {
-		log.Println("Error computing the score to be removed: ", err)
-		http.Error(w, "Error computing the score to be removed", http.StatusBadRequest)
-		return
-	}
-
-	err = travelDAO.DeleteTravel(travelID, deltaScore, isShortDistance)
-	if err != nil {
-		log.Println("Error interacting with the db: ", err)
-		http.Error(w, "Error interacting with the db", http.StatusBadRequest)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
 }

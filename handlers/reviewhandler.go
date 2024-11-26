@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"green-journey-server/db"
 	"green-journey-server/model"
@@ -63,9 +64,27 @@ func createReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
+		return
+	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	// decode json data
 	var review model.Review
-	err := json.NewDecoder(r.Body).Decode(&review)
+	err = json.NewDecoder(r.Body).Decode(&review)
 	if err != nil {
 		log.Println("Error decoding JSON: ", err)
 		http.Error(w, "Invalid data format", http.StatusBadRequest)
@@ -77,6 +96,22 @@ func createReview(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error closing request body:", err)
 		}
 	}()
+
+	// get user
+	userDAO := db.NewUserDAO(db.GetDB())
+	user, err := userDAO.GetUserById(review.UserID)
+	if err != nil {
+		log.Println("Error getting user: ", err)
+		http.Error(w, "Error getting user", http.StatusNotFound)
+		return
+	}
+
+	// check matching firebaseUID
+	if user.FirebaseUID != firebaseUID {
+		log.Println("Unauthorized")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	// check review data
 	if review.LocalTransportRating < 1 || review.LocalTransportRating > 5 {
@@ -134,6 +169,24 @@ func modifyReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
+		return
+	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	// extract review id from URI
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
@@ -164,6 +217,22 @@ func modifyReview(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error closing request body:", err)
 		}
 	}()
+
+	// get user
+	userDAO := db.NewUserDAO(db.GetDB())
+	user, err := userDAO.GetUserById(review.UserID)
+	if err != nil {
+		log.Println("Error getting user: ", err)
+		http.Error(w, "Error getting user", http.StatusNotFound)
+		return
+	}
+
+	// check matching firebaseUID
+	if user.FirebaseUID != firebaseUID {
+		log.Println("Unauthorized")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	// check review data
 	if review.LocalTransportRating < 1 || review.LocalTransportRating > 5 {
@@ -208,6 +277,24 @@ func deleteReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
+		return
+	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	// extract review id from URI
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
@@ -224,8 +311,32 @@ func deleteReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// delete review
+	// get review
 	reviewDAO := db.NewReviewDAO(db.GetDB())
+	review, err := reviewDAO.GetReviewsById(reviewID)
+	if err != nil {
+		log.Println("Review not found: ", err)
+		http.Error(w, "Review not found", http.StatusBadRequest)
+		return
+	}
+
+	// get user
+	userDAO := db.NewUserDAO(db.GetDB())
+	user, err := userDAO.GetUserById(review.UserID)
+	if err != nil {
+		log.Println("Error getting user: ", err)
+		http.Error(w, "Error getting user", http.StatusNotFound)
+		return
+	}
+
+	// check matching firebaseUID
+	if user.FirebaseUID != firebaseUID {
+		log.Println("Unauthorized")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// delete review
 	err = reviewDAO.DeleteReview(reviewID)
 	if err != nil {
 		log.Println("Error while interacting with the db: ", err)

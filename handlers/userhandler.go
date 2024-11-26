@@ -7,7 +7,6 @@ import (
 	"green-journey-server/model"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -84,8 +83,17 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 	}
 	idToken := strings.TrimPrefix(authHeader, "Bearer ")
 
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var user model.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+	err = json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		log.Println("Error while decoding JSON: ", err)
 		http.Error(w, "Wrong data provided", http.StatusBadRequest)
@@ -97,15 +105,6 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error closing request body:", err)
 		}
 	}()
-
-	// verify Firebase token
-	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
-	if err != nil {
-		log.Println("Unauthorized", err)
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
 
 	// check user has the right UID
 	if user.FirebaseUID != firebaseUID {
@@ -184,28 +183,21 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// extract userid from URI
-	path := r.URL.Path
-	parts := strings.Split(path, "/")
-	if len(parts) < 3 || parts[2] == "" {
-		log.Println("Invalid path")
-		http.Error(w, "User ID not provided", http.StatusBadRequest)
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
 		return
 	}
-	userIDStr := parts[2]
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil || userID < 0 {
-		log.Println("Invalid user ID")
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
-	}
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
 
-	// get existing user
-	userDAO := db.NewUserDAO(db.GetDB())
-	existingUser, err := userDAO.GetUserById(userID)
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
 	if err != nil {
-		log.Println("User not found: ", err)
-		http.Error(w, "User not found", http.StatusNotFound)
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -224,9 +216,19 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if user.UserID != userID {
-		log.Println("User ID mismatch")
-		http.Error(w, "User ID mismatch", http.StatusBadRequest)
+	// check matching firebaseUID
+	if user.FirebaseUID != firebaseUID {
+		log.Println("Unauthorized")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// get existing user
+	userDAO := db.NewUserDAO(db.GetDB())
+	existingUser, err := userDAO.GetUserByFirebaseUID(firebaseUID)
+	if err != nil {
+		log.Println("User not found: ", err)
+		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
 
@@ -293,31 +295,33 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// extract userid from URI
-	path := r.URL.Path
-	parts := strings.Split(path, "/")
-	if len(parts) < 3 || parts[2] == "" {
-		log.Println("Invalid path")
-		http.Error(w, "User ID not provided", http.StatusBadRequest)
+	// get Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Println("Missing or invalid auth header")
+		http.Error(w, "Missing or invalid auth header", http.StatusUnauthorized)
 		return
 	}
-	userIDStr := parts[2]
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil || userID < 0 {
-		log.Println("Invalid user ID")
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// verify Firebase token
+	ctx := context.Background()
+	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	if err != nil {
+		log.Println("Unauthorized", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	// delete user
 	userDAO := db.NewUserDAO(db.GetDB())
-	_, err = userDAO.GetUserById(userID)
+	user, err := userDAO.GetUserByFirebaseUID(firebaseUID)
 	if err != nil {
 		log.Println("User not found: ", err)
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
-	err = userDAO.DeleteUser(userID)
+	err = userDAO.DeleteUser(user.UserID)
 	if err != nil {
 		log.Println("Error while interacting with the db: ", err)
 		http.Error(w, "Error while deleting user", http.StatusBadRequest)

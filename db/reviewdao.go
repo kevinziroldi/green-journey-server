@@ -14,6 +14,12 @@ func NewReviewDAO(db *gorm.DB) *ReviewDAO {
 	return &ReviewDAO{db: db}
 }
 
+func (reviewDAO *ReviewDAO) GetReviewsById(reviewID int) (model.Review, error) {
+	var review model.Review
+	result := reviewDAO.db.First(&review, reviewID)
+	return review, result.Error
+}
+
 func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
 	result := reviewDAO.db.Create(&review)
 	return result.Error
