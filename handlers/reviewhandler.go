@@ -145,6 +145,7 @@ func createReview(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Error encoding JSON: ", err)
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusCreated)
 }
@@ -266,6 +267,7 @@ func modifyReview(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Error encoding JSON: ", err)
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
@@ -344,5 +346,44 @@ func deleteReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
+}
+
+func HandleBestReviews(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		getBestReviews(w, r)
+	} else {
+		log.Println("Method not supported")
+		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
+		return
+	}
+}
+
+func getBestReviews(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		log.Println("Method not supported")
+		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// no authentication needed
+
+	// get best reviews
+	reviewDAO := db.NewReviewDAO(db.GetDB())
+	bestReviews, err := reviewDAO.GetBestReviews()
+	if err != nil {
+		log.Println("Error getting best reviews: ", err)
+		http.Error(w, "Error getting best reviews", http.StatusBadRequest)
+		return
+	}
+
+	// send response
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(bestReviews)
+	if err != nil {
+		log.Println("Error encoding JSON: ", err)
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }

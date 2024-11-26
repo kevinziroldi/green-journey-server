@@ -219,3 +219,8 @@ func (reviewDAO *ReviewDAO) DeleteReview(reviewID int) error {
 
 	return nil
 }
+
+func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.Review, error) {
+	// TODO
+	return nil, nil
+}

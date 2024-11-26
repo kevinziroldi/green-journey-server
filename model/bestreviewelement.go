@@ -1,0 +1,11 @@
+package model
+
+type BestReviewElement struct {
+	Reviews                     []Review `json:"reviews"`
+	CountLocalTransportRating   int      `json:"count_local_transport_rating"`
+	CountGreenSpacesRating      int      `json:"count_green_spaces_rating"`
+	CountWasteBinsRating        int      `json:"count_waste_bins_rating"`
+	AverageLocalTransportRating float64  `json:"average_local_transport_rating"`
+	AverageGreenSpacesRating    float64  `json:"average_green_spaces_rating"`
+	AverageWasteBinsRating      float64  `json:"average_waste_bins_rating"`
+}

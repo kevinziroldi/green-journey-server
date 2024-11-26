@@ -160,6 +160,7 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Error encoding JSON: ", err)
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusCreated)
 }
@@ -284,6 +285,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Error encoding JSON: ", err)
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
