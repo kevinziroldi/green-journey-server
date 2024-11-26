@@ -26,6 +26,12 @@ func (cityDAO *CityDAO) CreateAirport(airport *model.Airport) error {
 	return result.Error
 }
 
+func (cityDAO *CityDAO) GetCities() ([]model.City, error) {
+	var cities []model.City
+	result := db.Find(&cities)
+	return cities, result.Error
+}
+
 func (cityDAO *CityDAO) GetCityById(cityID int) (model.City, error) {
 	var city model.City
 	result := cityDAO.db.First(&city, cityID)

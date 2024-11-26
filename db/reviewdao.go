@@ -4,7 +4,10 @@ import (
 	"errors"
 	"gorm.io/gorm"
 	"green-journey-server/model"
+	"sort"
 )
+
+const bestReviewsNumber = 5
 
 type ReviewDAO struct {
 	db *gorm.DB
@@ -16,20 +19,91 @@ func NewReviewDAO(db *gorm.DB) *ReviewDAO {
 
 func (reviewDAO *ReviewDAO) GetReviewsById(reviewID int) (model.Review, error) {
 	var review model.Review
+
+	// get review
 	result := reviewDAO.db.First(&review, reviewID)
-	return review, result.Error
+	if result.Error != nil {
+		return model.Review{}, result.Error
+	}
+
+	// inject data
+	err := injectReviewData(&review)
+	if err != nil {
+		return model.Review{}, err
+	}
+
+	return review, nil
 }
 
 func (reviewDAO *ReviewDAO) GetReviewsByUser(userID int) ([]model.Review, error) {
 	var reviews []model.Review
+
+	// get reviews
 	result := reviewDAO.db.Where("user_id = ?", userID).Find(&reviews)
-	return reviews, result.Error
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// inject data
+	for i, _ := range reviews {
+		err := injectReviewData(&reviews[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return reviews, nil
 }
 
 func (reviewDAO *ReviewDAO) GetReviewsByCity(cityID int) ([]model.Review, error) {
 	var reviews []model.Review
+
+	// get review
 	result := reviewDAO.db.Where("city_id = ?", cityID).Find(&reviews)
-	return reviews, result.Error
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// inject data
+	for i, _ := range reviews {
+		err := injectReviewData(&reviews[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return reviews, nil
+}
+
+func injectReviewData(review *model.Review) error {
+	if review == nil {
+		return errors.New("review is nil")
+	}
+
+	// get city
+	cityDAO := NewCityDAO(GetDB())
+	city, err := cityDAO.GetCityById(review.CityID)
+	if err != nil {
+		return err
+	}
+
+	// get user
+	userDAO := NewUserDAO(GetDB())
+	user, err := userDAO.GetUserById(review.UserID)
+	if err != nil {
+		return err
+	}
+
+	// inject data
+	review.CityIata = *city.CityIata
+	review.CountryCode = *city.CountryCode
+	review.FirstName = user.FirstName
+	review.LastName = user.LastName
+	review.ScoreShortDistance = user.ScoreShortDistance
+	review.ScoreLongDistance = user.ScoreLongDistance
+	review.Badges = user.Badges // already injected by GetUserById
+
+	return nil
 }
 
 func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
@@ -220,7 +294,67 @@ func (reviewDAO *ReviewDAO) DeleteReview(reviewID int) error {
 	return nil
 }
 
-func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.Review, error) {
-	// TODO
-	return nil, nil
+func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.BestReviewElement, error) {
+	// get all cities
+	cityDAO := NewCityDAO(GetDB())
+	cities, err := cityDAO.GetCities()
+	if err != nil {
+		return nil, err
+	}
+
+	// for every city, get aggregate data
+	var reviewsAggregatedList []model.ReviewsAggregated
+	for _, city := range cities {
+		var reviewsAggregated model.ReviewsAggregated
+		result := reviewDAO.db.First(&reviewsAggregated, city.CityID)
+		if result.Error != nil {
+			// city doesn't contain tuples or other error
+			// just skip one city
+			continue
+		}
+		// inject averages
+		reviewsAggregated.AverageLocalTransportRating = float64(reviewsAggregated.SumLocalTransportRating) / float64(reviewsAggregated.CountLocalTransportRating)
+		reviewsAggregated.AverageGreenSpacesRating = float64(reviewsAggregated.SumGreenSpacesRating) / float64(reviewsAggregated.CountGreenSpacesRating)
+		reviewsAggregated.AverageWasteBinsRating = float64(reviewsAggregated.SumWasteBinsRating) / float64(reviewsAggregated.CountWasteBinsRating)
+		// append
+		reviewsAggregatedList = append(reviewsAggregatedList, reviewsAggregated)
+	}
+
+	// sort slice according to higher sum of averages, if tie according to number of reviews
+	sort.Slice(reviewsAggregatedList, func(i, j int) bool {
+		sumAveragesI := reviewsAggregatedList[i].AverageLocalTransportRating + reviewsAggregatedList[i].AverageGreenSpacesRating + reviewsAggregatedList[i].AverageWasteBinsRating
+		sumAveragesJ := reviewsAggregatedList[j].AverageLocalTransportRating + reviewsAggregatedList[j].AverageGreenSpacesRating + reviewsAggregatedList[j].AverageWasteBinsRating
+		countI := reviewsAggregatedList[i].CountLocalTransportRating + reviewsAggregatedList[i].CountGreenSpacesRating + reviewsAggregatedList[i].CountWasteBinsRating
+		countJ := reviewsAggregatedList[j].CountLocalTransportRating + reviewsAggregatedList[j].CountGreenSpacesRating + reviewsAggregatedList[j].CountWasteBinsRating
+
+		if sumAveragesI == sumAveragesJ {
+			return countI >= countJ
+		}
+		// else
+		return sumAveragesI > sumAveragesJ
+	})
+
+	var bestReviewsElements []model.BestReviewElement
+	for i := 0; i < len(reviewsAggregatedList) && i < bestReviewsNumber; i++ {
+		// get reviews
+		reviews, err1 := reviewDAO.GetReviewsByCity(reviewsAggregatedList[i].CityID)
+		if err1 != nil {
+			return nil, err1
+		}
+
+		// build BestReviewsElement
+		bestReviewsElement := model.BestReviewElement{
+			Reviews:                     reviews,
+			CountLocalTransportRating:   reviewsAggregatedList[i].CountLocalTransportRating,
+			CountGreenSpacesRating:      reviewsAggregatedList[i].CountGreenSpacesRating,
+			CountWasteBinsRating:        reviewsAggregatedList[i].CountWasteBinsRating,
+			AverageLocalTransportRating: reviewsAggregatedList[i].AverageLocalTransportRating,
+			AverageGreenSpacesRating:    reviewsAggregatedList[i].AverageGreenSpacesRating,
+			AverageWasteBinsRating:      reviewsAggregatedList[i].AverageWasteBinsRating,
+		}
+
+		bestReviewsElements = append(bestReviewsElements, bestReviewsElement)
+	}
+
+	return bestReviewsElements, nil
 }
