@@ -10,7 +10,7 @@ import (
 func SetupRoutes(port string) {
 	// setup routes
 	http.HandleFunc("/users/user", handlers.HandleUsers)
-	http.HandleFunc("/users/", handlers.HandleModifyUser)
+	http.HandleFunc("/users", handlers.HandleModifyUser)
 
 	http.HandleFunc("/travels/search", handlers.HandleSearchTravel)
 	http.HandleFunc("/travels/user", handlers.HandleTravelsUser)
