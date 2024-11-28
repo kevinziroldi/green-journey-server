@@ -83,43 +83,39 @@ func (userDAO *UserDAO) InjectBadges(user *model.User) error {
 	}
 
 	// compute badges
-	if totalDistance >= distanceLowLimit {
-		badges = append(badges, model.BadgeDistanceLow)
-	}
-	if totalDistance >= distanceMidLimit {
-		badges = append(badges, model.BadgeDistanceMid)
-	}
+
 	if totalDistance >= distanceHighLimit {
 		badges = append(badges, model.BadgeDistanceHigh)
+	} else if totalDistance >= distanceMidLimit {
+		badges = append(badges, model.BadgeDistanceMid)
+	} else if totalDistance >= distanceLowLimit {
+		badges = append(badges, model.BadgeDistanceLow)
 	}
+
 	ecologicalChoiceValue := travelCoefficient * totalDistance / (0.001 + totalCO2Emitted)
-	if ecologicalChoiceValue >= ecologicalChoiceLowLimit {
-		badges = append(badges, model.BadgeEcologicalChoiceLow)
-	}
-	if ecologicalChoiceValue >= ecologicalChoiceMidLimit {
-		badges = append(badges, model.BadgeEcologicalChoiceMid)
-	}
 	if ecologicalChoiceValue >= ecologicalChoiceHighLimit {
 		badges = append(badges, model.BadgeEcologicalChoiceHigh)
+	} else if ecologicalChoiceValue >= ecologicalChoiceMidLimit {
+		badges = append(badges, model.BadgeEcologicalChoiceMid)
+	} else if ecologicalChoiceValue >= ecologicalChoiceLowLimit {
+		badges = append(badges, model.BadgeEcologicalChoiceLow)
 	}
+
 	compensationValue := compensationCoefficient * totalCO2Compensated / (0.001 + totalCO2Emitted)
-	if compensationValue >= compensationLowLimit {
-		badges = append(badges, model.BadgeCompensationLow)
-	}
-	if compensationValue >= compensationMidLimit {
-		badges = append(badges, model.BadgeCompensationMid)
-	}
 	if compensationValue >= compensationHighLimit {
 		badges = append(badges, model.BadgeCompensationHigh)
+	} else if compensationValue >= compensationMidLimit {
+		badges = append(badges, model.BadgeCompensationMid)
+	} else if compensationValue >= compensationLowLimit {
+		badges = append(badges, model.BadgeCompensationLow)
 	}
-	if numTravels >= numTravelsLowLimit {
-		badges = append(badges, model.BadgeTravelsNumberLow)
-	}
-	if numTravels >= numTravelsMidLimit {
-		badges = append(badges, model.BadgeTravelsNumberMid)
-	}
+
 	if numTravels >= numTravelsHighLimit {
 		badges = append(badges, model.BadgeTravelsNumberHigh)
+	} else if numTravels >= numTravelsMidLimit {
+		badges = append(badges, model.BadgeTravelsNumberMid)
+	} else if numTravels >= numTravelsLowLimit {
+		badges = append(badges, model.BadgeTravelsNumberLow)
 	}
 
 	// inject badges
