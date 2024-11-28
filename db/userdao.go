@@ -60,7 +60,7 @@ func (userDAO *UserDAO) GetUserByFirebaseUID(firebaseUID string) (model.User, er
 }
 
 func (userDAO *UserDAO) InjectBadges(user *model.User) error {
-	var badges []model.Badge
+	badges := []model.Badge{}
 
 	// compute data
 	totalDistance := 0.0
