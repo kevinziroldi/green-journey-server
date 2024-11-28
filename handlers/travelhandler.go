@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"green-journey-server/db"
 	"green-journey-server/externals"
@@ -269,6 +270,8 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	fmt.Println(travelDetails)
+
 	// check matching firebaseUID
 	userDAO := db.NewUserDAO(db.GetDB())
 	user, err := userDAO.GetUserById(travelDetails.Travel.UserID)
@@ -353,7 +356,6 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check NumSegment (ordered outward segments, followed by ordered return segments)
-	// update NumSegment for return segments
 	numOutwardSegments := -1
 	errorFound := false
 	for i := 0; i < len(travelDetails.Segments) && !errorFound; i++ {
@@ -373,10 +375,13 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 			if segment.NumSegment != i+1-numOutwardSegments {
 				errorFound = true
 			}
-			// update with final value
-			segment.NumSegment = i + 1
 		}
 	}
+	// update NumSegment for return segments
+	for i, _ := range travelDetails.Segments {
+		travelDetails.Segments[i].NumSegment = i + 1
+	}
+
 	if errorFound {
 		log.Println("Invalid num segment")
 		http.Error(w, "Invalid num segment", http.StatusBadRequest)

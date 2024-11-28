@@ -196,8 +196,6 @@ func GetFlights(departureCity, destinationCity model.City, date time.Time, isOut
 
 	apiUrl := fmt.Sprintf("%s?%s", baseUrl, params.Encode())
 
-	fmt.Println(apiUrl)
-
 	// create request
 	req, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
@@ -252,8 +250,6 @@ func GetFlights(departureCity, destinationCity model.City, date time.Time, isOut
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(string(body))
 
 	// check response status code
 	if resp.StatusCode != http.StatusOK {

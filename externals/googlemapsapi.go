@@ -211,8 +211,6 @@ func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, h
 
 	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
 
-	fmt.Println(fullURL)
-
 	resp, err := http.Get(fullURL)
 	if err != nil {
 		log.Println("error creating the request: ", err)
@@ -230,8 +228,6 @@ func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, h
 		log.Println("error reading the body: ", err)
 		return nil, err
 	}
-
-	fmt.Println(string(body))
 
 	// check response status code
 	if resp.StatusCode != http.StatusOK {
@@ -815,8 +811,6 @@ func GetCityNoIata(cityName string, latitude, longitude float64) (model.City, er
 	params.Add("key", googleApiKey)
 
 	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-
-	fmt.Println(fullURL)
 
 	resp, err := http.Get(fullURL)
 	if err != nil {
