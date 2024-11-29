@@ -108,7 +108,7 @@ func injectReviewData(review *model.Review) error {
 
 func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
 	// create transaction
-	transaction := db.Begin()
+	transaction := reviewDAO.db.Begin()
 	if transaction.Error != nil {
 		return transaction.Error
 	}
@@ -171,7 +171,7 @@ func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
 
 func (reviewDAO *ReviewDAO) UpdateReview(review model.Review) error {
 	// create transaction
-	transaction := db.Begin()
+	transaction := reviewDAO.db.Begin()
 	if transaction.Error != nil {
 		return transaction.Error
 	}
@@ -233,7 +233,7 @@ func (reviewDAO *ReviewDAO) UpdateReview(review model.Review) error {
 
 func (reviewDAO *ReviewDAO) DeleteReview(reviewID int) error {
 	// create transaction
-	transaction := db.Begin()
+	transaction := reviewDAO.db.Begin()
 	if transaction.Error != nil {
 		return transaction.Error
 	}

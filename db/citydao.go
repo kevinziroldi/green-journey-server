@@ -16,19 +16,19 @@ func NewCityDAO(db *gorm.DB) *CityDAO {
 
 func (cityDAO *CityDAO) CreateCity(city *model.City) error {
 	// takes a pointer, in order to update the param struct
-	result := db.Create(city)
+	result := cityDAO.db.Create(city)
 	return result.Error
 }
 
 func (cityDAO *CityDAO) CreateAirport(airport *model.Airport) error {
 	// takes a pointer, in order to update the param struct
-	result := db.Create(airport)
+	result := cityDAO.db.Create(airport)
 	return result.Error
 }
 
 func (cityDAO *CityDAO) GetCities() ([]model.City, error) {
 	var cities []model.City
-	result := db.Find(&cities)
+	result := cityDAO.db.Find(&cities)
 	return cities, result.Error
 }
 

@@ -16,7 +16,7 @@ func NewTravelDAO(db *gorm.DB) *TravelDAO {
 
 func (travelDAO *TravelDAO) CreateTravel(travelDetails model.TravelDetails) (model.TravelDetails, error) {
 	// create transaction
-	transaction := db.Begin()
+	transaction := travelDAO.db.Begin()
 	if transaction.Error != nil {
 		return model.TravelDetails{}, transaction.Error
 	}
@@ -60,7 +60,7 @@ func (travelDAO *TravelDAO) GetTravelRequestsByUserId(userID int) ([]model.Trave
 	var travelDetailsList []model.TravelDetails
 
 	// get travels
-	result := db.Where("id_user = ?", userID).Find(&travels)
+	result := travelDAO.db.Where("id_user = ?", userID).Find(&travels)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -70,7 +70,7 @@ func (travelDAO *TravelDAO) GetTravelRequestsByUserId(userID int) ([]model.Trave
 		var segments []model.Segment
 
 		// get segments
-		result = db.Where("id_travel = ?", travel.TravelID).Find(&segments)
+		result = travelDAO.db.Where("id_travel = ?", travel.TravelID).Find(&segments)
 		if result.Error != nil {
 			return nil, result.Error
 		}
@@ -105,7 +105,7 @@ func (travelDAO *TravelDAO) GetTravelDetailsByTravelID(travelID int) (model.Trav
 
 	// get segments
 	var segments []model.Segment
-	result := db.Where("id_travel = ?", travel.TravelID).Find(&segments)
+	result := travelDAO.db.Where("id_travel = ?", travel.TravelID).Find(&segments)
 	if result.Error != nil {
 		return model.TravelDetails{}, result.Error
 	}
@@ -120,7 +120,7 @@ func (travelDAO *TravelDAO) GetTravelDetailsByTravelID(travelID int) (model.Trav
 
 func (travelDAO *TravelDAO) UpdateTravel(travel model.Travel, deltaScore float64, isShortDistance bool) error {
 	// create transaction
-	transaction := db.Begin()
+	transaction := travelDAO.db.Begin()
 	if transaction.Error != nil {
 		return transaction.Error
 	}
@@ -172,7 +172,7 @@ func (travelDAO *TravelDAO) UpdateTravel(travel model.Travel, deltaScore float64
 
 func (travelDAO *TravelDAO) DeleteTravel(travelID int, deltaScore float64, isShortDistance bool) error {
 	// create transaction
-	transaction := db.Begin()
+	transaction := travelDAO.db.Begin()
 	if transaction.Error != nil {
 		return transaction.Error
 	}

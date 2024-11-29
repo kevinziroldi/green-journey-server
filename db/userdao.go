@@ -125,17 +125,17 @@ func (userDAO *UserDAO) InjectBadges(user *model.User) error {
 }
 
 func (userDAO *UserDAO) AddUser(user model.User) (model.User, error) {
-	result := db.Create(&user)
+	result := userDAO.db.Create(&user)
 	return user, result.Error
 }
 
 func (userDAO *UserDAO) UpdateUser(user model.User) error {
-	result := db.Save(&user)
+	result := userDAO.db.Save(&user)
 	return result.Error
 }
 
 func (userDAO *UserDAO) DeleteUser(id int) error {
-	result := db.Delete(&model.User{}, id)
+	result := userDAO.db.Delete(&model.User{}, id)
 
 	if result.Error != nil {
 		return result.Error

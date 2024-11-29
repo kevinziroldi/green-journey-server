@@ -21,7 +21,9 @@ func InitDB() (*gorm.DB, error) {
 
 	dsn := "host=localhost user=" + user + " password=" + password + " dbname=green_journey_db port=5432 sslmode=disable"
 
-	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		PrepareStmt: true,
+	})
 
 	if err != nil {
 		// can't connect to the db, the server should stop
