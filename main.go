@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"green-journey-server/db"
 	"green-journey-server/externals"
 	"green-journey-server/handlers"
@@ -14,8 +13,6 @@ func main() {
 	// get port from flag
 	port := flag.String("port", "80", "Port on which the server listens")
 	flag.Parse()
-
-	fmt.Println(port)
 
 	// init db
 	database, err := db.InitDB()
@@ -54,13 +51,5 @@ func main() {
 	handlers.InitializeFirebase()
 
 	// setup routes
-	//SetupRoutes(*port)
-
-	reviewDAO := db.NewReviewDAO(db.GetDB())
-	res, err := reviewDAO.GetBestReviews()
-	if err != nil {
-		log.Fatalf("Failed to get best reviews: %v", err)
-		return
-	}
-	fmt.Println(res)
+	SetupRoutes(*port)
 }
