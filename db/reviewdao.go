@@ -4,7 +4,6 @@ import (
 	"errors"
 	"gorm.io/gorm"
 	"green-journey-server/model"
-	"sort"
 )
 
 const bestReviewsNumber = 5
@@ -59,7 +58,7 @@ func (reviewDAO *ReviewDAO) GetReviewsByCity(cityID int) ([]model.Review, error)
 	var reviews []model.Review
 
 	// get review
-	result := reviewDAO.db.Where("city_id = ?", cityID).Find(&reviews)
+	result := reviewDAO.db.Where("id_city = ?", cityID).Find(&reviews)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -295,6 +294,51 @@ func (reviewDAO *ReviewDAO) DeleteReview(reviewID int) error {
 }
 
 func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.BestReviewElement, error) {
+	var reviewsAggregatedList []model.ReviewsAggregated
+
+	err := reviewDAO.db.
+		Table("reviews_aggregated").
+		Select("*, " +
+			"((sum_local_transport_rating / NULLIF(count_local_transport_rating, 0)) + (sum_green_spaces_rating / NULLIF(count_green_spaces_rating, 0)) + (sum_waste_bins_rating / NULLIF(count_waste_bins_rating, 0))) AS total_average").
+		Order("total_average DESC").
+		Limit(10).
+		Scan(&reviewsAggregatedList)
+
+	if err.Error != nil {
+		if errors.Is(err.Error, gorm.ErrRecordNotFound) {
+			return []model.BestReviewElement{}, nil
+		} else {
+			return nil, err.Error
+		}
+	}
+
+	var bestReviewsElements []model.BestReviewElement
+	for i := 0; i < len(reviewsAggregatedList) && i < bestReviewsNumber; i++ {
+		// get reviews
+		reviews, err1 := reviewDAO.GetReviewsByCity(reviewsAggregatedList[i].CityID)
+		if err1 != nil {
+			return nil, err1
+		}
+
+		// build BestReviewsElement
+		bestReviewsElement := model.BestReviewElement{
+			Reviews:                     reviews,
+			CountLocalTransportRating:   reviewsAggregatedList[i].CountLocalTransportRating,
+			CountGreenSpacesRating:      reviewsAggregatedList[i].CountGreenSpacesRating,
+			CountWasteBinsRating:        reviewsAggregatedList[i].CountWasteBinsRating,
+			AverageLocalTransportRating: reviewsAggregatedList[i].AverageLocalTransportRating,
+			AverageGreenSpacesRating:    reviewsAggregatedList[i].AverageGreenSpacesRating,
+			AverageWasteBinsRating:      reviewsAggregatedList[i].AverageWasteBinsRating,
+		}
+
+		bestReviewsElements = append(bestReviewsElements, bestReviewsElement)
+	}
+
+	return bestReviewsElements, nil
+}
+
+/*
+func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.BestReviewElement, error) {
 	// get all cities
 	cityDAO := NewCityDAO(GetDB())
 	cities, err := cityDAO.GetCities()
@@ -358,3 +402,4 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.BestReviewElement, error) 
 
 	return bestReviewsElements, nil
 }
+*/

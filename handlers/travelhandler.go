@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -34,6 +35,8 @@ func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
 		return
 	}
+
+	start := time.Now()
 
 	// get request parameters
 
@@ -111,6 +114,10 @@ func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 	response := TravelOptions{
 		Options: travelOptions,
 	}
+
+	elapsed := time.Since(start)
+	fmt.Println("CALL SEARCH TRAVEL took:", elapsed)
+
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
@@ -122,39 +129,53 @@ func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 
 func ComputeApiData(departureCity, destinationCity model.City, date, t time.Time, isOutward bool) [][]model.Segment {
 	var apiData [][]model.Segment
+	var wg sync.WaitGroup
+	results := make(chan []model.Segment, 5)
 
-	// plane data
-	directionsPlane, err := externals.GetFlights(departureCity, destinationCity, date, isOutward)
-	if err == nil && directionsPlane != nil {
-		for i := range directionsPlane {
-			if directionsPlane[i] != nil {
-				apiData = append(apiData, directionsPlane[i])
+	amadeusCallAPI := func(fetchFunc func(model.City, model.City, time.Time, time.Time, bool) ([][]model.Segment, error)) {
+		defer wg.Done()
+		directions, err := fetchFunc(departureCity, destinationCity, date, t, isOutward)
+		if err == nil && directions != nil {
+			for i := range directions {
+				if directions[i] != nil {
+					results <- directions[i]
+				}
 			}
 		}
 	}
 
-	// bike data
-	directionsBike, err := externals.GetDirectionsBike(departureCity, destinationCity, date, t, isOutward)
-	if err == nil && directionsBike != nil {
-		apiData = append(apiData, directionsBike)
+	googleMapsCallAPI := func(fetchFunc func(model.City, model.City, time.Time, time.Time, bool) ([]model.Segment, error)) {
+		defer wg.Done()
+		directions, err := fetchFunc(departureCity, destinationCity, date, t, isOutward)
+		if err == nil && directions != nil {
+			results <- directions
+		}
 	}
 
-	// car data
-	directionsCar, err := externals.GetDirectionsCar(departureCity, destinationCity, date, t, isOutward)
-	if err == nil && directionsCar != nil {
-		apiData = append(apiData, directionsCar)
-	}
+	wg.Add(1)
+	go amadeusCallAPI(func(dep, dest model.City, d, t time.Time, out bool) ([][]model.Segment, error) {
+		return externals.GetFlights(dep, dest, d, out)
+	})
 
-	// train data
-	directionsTrain, err := externals.GetDirectionsTrain(departureCity, destinationCity, date, t, isOutward)
-	if err == nil && directionsTrain != nil {
-		apiData = append(apiData, directionsTrain)
-	}
+	wg.Add(1)
+	go googleMapsCallAPI(externals.GetDirectionsBike)
 
-	// bus data
-	directionsBus, err := externals.GetDirectionsBus(departureCity, destinationCity, date, t, isOutward)
-	if err == nil && directionsBus != nil {
-		apiData = append(apiData, directionsBus)
+	wg.Add(1)
+	go googleMapsCallAPI(externals.GetDirectionsCar)
+
+	wg.Add(1)
+	go googleMapsCallAPI(externals.GetDirectionsTrain)
+
+	wg.Add(1)
+	go googleMapsCallAPI(externals.GetDirectionsBus)
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for res := range results {
+		apiData = append(apiData, res)
 	}
 
 	return apiData
