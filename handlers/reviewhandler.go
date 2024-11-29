@@ -14,7 +14,7 @@ import (
 func HandleReviews(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		getReviewsByCityId(w, r)
+		getReviewsForCity(w, r)
 	case "POST":
 		createReview(w, r)
 	default:
@@ -24,24 +24,36 @@ func HandleReviews(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getReviewsByCityId(w http.ResponseWriter, r *http.Request) {
+func getReviewsForCity(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		log.Println("Method not supported")
 		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
 		return
 	}
 
-	cityIdStr := r.URL.Query().Get("city_id")
-	cityId, err := strconv.Atoi(cityIdStr)
-	if err != nil || cityId < 0 {
-		log.Println("Wrong id value: ", err)
-		http.Error(w, "The provided id is not valid", http.StatusBadRequest)
+	cityIata := r.URL.Query().Get("city_iata")
+	if cityIata == "" {
+		log.Println("Missing city iata")
+		http.Error(w, "Missing departure city iata", http.StatusBadRequest)
+		return
+	}
+	countryCode := r.URL.Query().Get("country_code")
+	if countryCode == "" {
+		log.Println("Missing departure country code")
+		http.Error(w, "Missing departure country code", http.StatusBadRequest)
+		return
+	}
+
+	cityDAO := db.NewCityDAO(db.GetDB())
+	city, err := cityDAO.GetCityByIataAndCountryCode(cityIata, countryCode)
+	if err != nil {
+		log.Println("Error getting city: ", err)
+		http.Error(w, "Error getting city", http.StatusBadRequest)
 		return
 	}
 
 	reviewDAO := db.NewReviewDAO(db.GetDB())
-
-	reviews, err := reviewDAO.GetReviewsByCity(cityId)
+	reviews, err := reviewDAO.GetReviewsByCity(city.CityID)
 	if err != nil {
 		log.Println("Error getting reviews: ", err)
 		http.Error(w, "Error getting reviews", http.StatusNotFound)
