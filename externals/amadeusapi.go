@@ -26,76 +26,41 @@ var accessToken string
 var amadeusApiKey string
 var amadeusApiSecret string
 
+// firebase authentication structure
+
 type AuthResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
+// amadeus structures
+
 type FlightResponse struct {
-	Meta *Meta         `json:"meta"`
 	Data []FlightOffer `json:"data"`
 }
-
-type Meta struct {
-	Count int `json:"count"`
-	Links struct {
-		Self string `json:"self"`
-	} `json:"links"`
-}
-
 type FlightOffer struct {
-	Type                     string            `json:"type"`
-	Id                       string            `json:"id"`
-	Source                   string            `json:"source"`
-	InstantTicketingRequired bool              `json:"instantTicketingRequired"`
-	Itineraries              []Itinerary       `json:"itineraries"`
-	Price                    *FlightPrice      `json:"price"`
-	TravelerPricings         []TravelerPricing `json:"travelerPricings"`
+	Itineraries []Itinerary  `json:"itineraries"`
+	Price       *FlightPrice `json:"price"`
 }
-
-type TravelerPricing struct {
-	TravelerId string       `json:"travelerId"`
-	Price      *FlightPrice `json:"price"`
-}
-
 type FlightPrice struct {
-	Currency   string `json:"currency"`
-	Total      string `json:"total"`
-	Base       string `json:"base"`
 	GrandTotal string `json:"grandTotal"`
 }
-
 type Itinerary struct {
-	Duration string          `json:"duration"`
 	Segments []FlightSegment `json:"segments"`
 }
-
 type FlightSegment struct {
 	Departure   *Airport `json:"departure"`
 	Arrival     *Airport `json:"arrival"`
 	CarrierCode string   `json:"carrierCode"`
 	Number      string   `json:"number"`
-	Aircraft    struct {
-		Code string `json:"code"`
-	} `json:"aircraft"`
-	Operating struct {
-		CarrierCode string `json:"carrierCode"`
-	} `json:"operating"`
-	Duration        string `json:"duration"`
-	Id              string `json:"id"`
-	NumberOfStops   int    `json:"numberOfStops"`
-	BlacklistedInEU bool   `json:"blacklistedInEU"`
+	Duration    string   `json:"duration"`
 }
-
 type Airport struct {
 	IataCode string `json:"iataCode"`
-	Terminal string `json:"terminal"`
 	At       string `json:"at"`
 }
-
 type LocationResponse struct {
 	Data []AmadeusLocation `json:"data"`
 }
-
 type AmadeusLocation struct {
 	Name     string   `json:"name"`
 	IataCode *string  `json:"iataCode"`
@@ -103,14 +68,10 @@ type AmadeusLocation struct {
 	Address  *Address `json:"address"`
 	GeoCode  *GeoCode `json:"geoCode"`
 }
-
 type Address struct {
-	CityName    *string `json:"cityName"`
 	CityCode    *string `json:"cityCode"`
-	CountryName *string `json:"countryName"`
 	CountryCode *string `json:"countryCode"`
 }
-
 type GeoCode struct {
 	Latitude  *float64 `json:"latitude"`
 	Longitude *float64 `json:"longitude"`

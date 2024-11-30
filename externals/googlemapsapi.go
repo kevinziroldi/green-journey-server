@@ -27,162 +27,76 @@ type DistanceMatrixResponse struct {
 	DestinationAddresses []string `json:"destination_addresses"`
 	OriginAddresses      []string `json:"origin_addresses"`
 	Rows                 []Row    `json:"rows"`
-	Status               string   `json:"status"`
 }
-
 type Row struct {
 	Elements []Element `json:"elements"`
 }
-
 type Element struct {
 	Distance *Distance `json:"distance"`
 	Duration *Duration `json:"duration"`
-	Status   string    `json:"status"`
 }
-
 type Distance struct {
-	Text  string `json:"text"`
-	Value int    `json:"value"`
+	Value int `json:"value"`
 }
-
 type Duration struct {
-	Text  string `json:"text"`
-	Value int    `json:"value"`
+	Value int `json:"value"`
 }
 
 // train directions
 
 type DirectionsResponse struct {
-	GeocodedWaypoints []GeocodedWaypoint `json:"geocoded_waypoints"`
-	Routes            []Route            `json:"routes"`
-	Status            string             `json:"status"`
+	Routes []Route `json:"routes"`
 }
-
-type GeocodedWaypoint struct {
-	GeocoderStatus string   `json:"geocoder_status"`
-	PlaceID        string   `json:"place_id"`
-	Types          []string `json:"types"`
-}
-
 type Route struct {
 	Legs []Leg `json:"legs"`
 }
-
 type Leg struct {
-	Distance      *Distance           `json:"distance"`
-	Duration      *Duration           `json:"duration"`
-	StartAddress  string              `json:"start_address"`
-	EndAddress    string              `json:"end_address"`
-	StartLocation *GoogleMapsLocation `json:"start_location"`
-	EndLocation   *GoogleMapsLocation `json:"end_location"`
-	Steps         []Step              `json:"steps"`
+	Steps []Step `json:"steps"`
 }
-
-type Coordinates struct {
-	Lat float64 `json:"lat"`
-	Lng float64 `json:"lng"`
-}
-
 type Step struct {
-	Distance         *Distance           `json:"distance"`
-	Duration         *Duration           `json:"duration"`
-	TravelMode       string              `json:"travel_mode"`
-	StartLocation    *GoogleMapsLocation `json:"start_location"`
-	EndLocation      *GoogleMapsLocation `json:"end_location"`
-	Polyline         *Polyline           `json:"polyline"`
-	HtmlInstructions string              `json:"html_instructions"`
-	TransitDetails   *TransitDetails     `json:"transit_details"`
+	Distance       *Distance       `json:"distance"`
+	Duration       *Duration       `json:"duration"`
+	TravelMode     string          `json:"travel_mode"`
+	TransitDetails *TransitDetails `json:"transit_details"`
 }
-
-type Polyline struct {
-	Points string `json:"points"`
-}
-
 type TransitDetails struct {
 	ArrivalStop   *Stop        `json:"arrival_stop"`
 	DepartureStop *Stop        `json:"departure_stop"`
-	ArrivalTime   *Time        `json:"arrival_time"`
 	DepartureTime *Time        `json:"departure_time"`
-	Headsign      string       `json:"headsign"`
 	Line          *TransitLine `json:"line"`
-	NumStops      int          `json:"num_stops"`
 }
-
 type Stop struct {
 	Location *GoogleMapsLocation `json:"location"`
 	Name     string              `json:"name"`
 }
-
 type GoogleMapsLocation struct {
 	Latitude  float64 `json:"lat"`
 	Longitude float64 `json:"lng"`
 }
-
 type Time struct {
-	Text  string `json:"text"`
-	Value int64  `json:"value"`
+	Value int64 `json:"value"`
 }
-
 type TransitLine struct {
 	Name      string   `json:"name"`
 	ShortName string   `json:"short_name"`
 	Vehicle   *Vehicle `json:"vehicle"`
-	Agencies  []Agency `json:"agencies"`
-	Color     string   `json:"color"`
-	TextColor string   `json:"text_color"`
 }
-
 type Vehicle struct {
-	Name string `json:"name"`
 	Type string `json:"type"`
-}
-
-type Agency struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
 }
 
 // geocoding response
 
 type GeocodeResponse struct {
-	PlusCode PlusCode `json:"plus_code"`
-	Results  []Result `json:"results"`
+	Results []Result `json:"results"`
 }
-
-type PlusCode struct {
-	CompoundCode string `json:"compound_code"`
-	GlobalCode   string `json:"global_code"`
-}
-
 type Result struct {
 	AddressComponents []AddressComponent `json:"address_components"`
-	FormattedAddress  string             `json:"formatted_address"`
-	Geometry          Geometry           `json:"geometry"`
-	PlaceID           string             `json:"place_id"`
-	Types             []string           `json:"types"`
 }
-
 type AddressComponent struct {
 	LongName  string   `json:"long_name"`
 	ShortName string   `json:"short_name"`
 	Types     []string `json:"types"`
-}
-
-type Geometry struct {
-	Bounds       Bounds `json:"bounds"`
-	Location     LatLng `json:"location"`
-	LocationType string `json:"location_type"`
-	Viewport     Bounds `json:"viewport"`
-}
-
-type Bounds struct {
-	Northeast LatLng `json:"northeast"`
-	Southwest LatLng `json:"southwest"`
-}
-
-type LatLng struct {
-	Lat float64 `json:"lat"`
-	Lng float64 `json:"lng"`
 }
 
 func InitGoogleMapsApi() {
