@@ -293,8 +293,6 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	fmt.Println(travelDetails)
-
 	// check matching firebaseUID
 	userDAO := db.NewUserDAO(db.GetDB())
 	user, err := userDAO.GetUserById(travelDetails.Travel.UserID)
@@ -496,8 +494,6 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(newTravel)
-
 	// check provided data
 	if existingTravel.Confirmed && !newTravel.Confirmed {
 		log.Println("Travel previously confirmed")
@@ -576,7 +572,7 @@ func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confi
 	return deltaScore, isShortDistance, nil
 }
 
-func HandleModifyTravel(w http.ResponseWriter, r *http.Request) {
+func HandleDeleteTravel(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "DELETE":
 		deleteTravel(w, r)

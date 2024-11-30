@@ -189,7 +189,7 @@ func (travelDAO *TravelDAO) DeleteTravel(travelID int, deltaScore float64, isSho
 	// get user id
 	var travel model.Travel
 	err := transaction.First(&travel, travelID)
-	if err != nil {
+	if err.Error != nil {
 		return err.Error
 	}
 	userID := travel.UserID

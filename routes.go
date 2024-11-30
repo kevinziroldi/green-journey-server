@@ -14,7 +14,7 @@ func SetupRoutes(port string) {
 
 	http.HandleFunc("/travels/search", handlers.HandleSearchTravel)
 	http.HandleFunc("/travels/user", handlers.HandleTravelsUser)
-	http.HandleFunc("/travels/user/", handlers.HandleModifyTravel)
+	http.HandleFunc("/travels/user/", handlers.HandleDeleteTravel)
 
 	http.HandleFunc("/reviews", handlers.HandleReviews)
 	http.HandleFunc("/reviews/", handlers.HandleModifyReviews)
