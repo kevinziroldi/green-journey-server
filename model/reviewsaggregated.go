@@ -1,5 +1,8 @@
 package model
 
+// ReviewsAggregated is a struct corresponding to a DB table, that contains
+// aggregate data about reviews for a city: it is used to avoid computing all values
+// when a user asks for best reviewed cities
 type ReviewsAggregated struct {
 	CityID                      int     `gorm:"column:id_city;primaryKey;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	SumLocalTransportRating     int     `gorm:"column:sum_local_transport_rating;type:integer;not null"`

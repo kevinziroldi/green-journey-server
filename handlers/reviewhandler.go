@@ -53,15 +53,15 @@ func getReviewsForCity(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reviewDAO := db.NewReviewDAO(db.GetDB())
-	reviews, err := reviewDAO.GetReviewsByCity(city.CityID)
+	cityReviewElement, err := reviewDAO.GetCityReviewElementByCityID(city.CityID)
 	if err != nil {
-		log.Println("Error getting reviews: ", err)
-		http.Error(w, "Error getting reviews", http.StatusNotFound)
+		log.Println("Error getting city review element: ", err)
+		http.Error(w, "Error getting city review element", http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(reviews)
+	err = json.NewEncoder(w).Encode(cityReviewElement)
 	if err != nil {
 		log.Println("Error encoding JSON: ", err)
 		http.Error(w, "Error encoding", http.StatusInternalServerError)
