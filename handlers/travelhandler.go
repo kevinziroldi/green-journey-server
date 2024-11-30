@@ -431,7 +431,7 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 
 func HandleModifyTravel(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "PATCH":
+	case "PUT":
 		modifyTravel(w, r)
 	case "DELETE":
 		deleteTravel(w, r)
@@ -442,7 +442,7 @@ func HandleModifyTravel(w http.ResponseWriter, r *http.Request) {
 }
 
 func modifyTravel(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "PATCH" {
+	if r.Method != "PUT" {
 		log.Println("Method not supported")
 		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
 		return
@@ -466,25 +466,24 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// extract travel id from URI
-	path := r.URL.Path
-	parts := strings.Split(path, "/")
-	if len(parts) < 4 || parts[3] == "" {
-		log.Println("Invalid path")
-		http.Error(w, "Travel ID not provided", http.StatusBadRequest)
+	// extract travel
+	var newTravel model.Travel
+	err = json.NewDecoder(r.Body).Decode(&newTravel)
+	if err != nil {
+		log.Println("Error while decoding JSON: ", err)
+		http.Error(w, "Wrong data provided", http.StatusBadRequest)
 		return
 	}
-	travelIDStr := parts[3]
-	travelID, err := strconv.Atoi(travelIDStr)
-	if err != nil || travelID < 0 {
-		log.Println("Invalid travel ID")
-		http.Error(w, "Invalid travel ID", http.StatusBadRequest)
-		return
-	}
+	defer func() {
+		err = r.Body.Close()
+		if err != nil {
+			log.Println("Error closing request body:", err)
+		}
+	}()
 
 	// get travel
 	travelDAO := db.NewTravelDAO(db.GetDB())
-	travel, err := travelDAO.GetTravelById(travelID)
+	existingTravel, err := travelDAO.GetTravelById(newTravel.TravelID)
 	if err != nil {
 		log.Println("Travel not found: ", err)
 		http.Error(w, "Travel not found", http.StatusNotFound)
@@ -493,7 +492,7 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 
 	// get user
 	userDAO := db.NewUserDAO(db.GetDB())
-	user, err := userDAO.GetUserById(travel.UserID)
+	user, err := userDAO.GetUserById(newTravel.UserID)
 	if err != nil {
 		log.Println("User not found: ", err)
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -507,52 +506,21 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get body content
-	var updateData map[string]interface{}
-	err = json.NewDecoder(r.Body).Decode(&updateData)
-	if err != nil {
-		log.Println("Error decoding JSON: ", err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	fmt.Println(newTravel)
+
+	// check provided data
+	if existingTravel.Confirmed && !newTravel.Confirmed {
+		log.Println("Travel previously confirmed")
+		http.Error(w, "Travel already confirmed", http.StatusBadRequest)
 		return
 	}
-	defer func() {
-		err = r.Body.Close()
-		if err != nil {
-			log.Println("Error closing request body:", err)
-		}
-	}()
-
-	// update fields in the request
-
-	co2Compensated, formatOk := updateData["co2_compensated"].(float64)
-	if formatOk && co2Compensated >= 0 {
-		if travel.CO2Compensated < co2Compensated {
-			travel.CO2Compensated = co2Compensated
-		} else {
-			log.Println("CO2 compensated can't decrease: ", err)
-			http.Error(w, "CO2 compensated can't decrease", http.StatusBadRequest)
-			return
-		}
-	}
-
-	confirmed, formatOk := updateData["confirmed"].(bool)
-	if formatOk {
-		if travel.Confirmed == true && confirmed == false {
-			log.Println("Travel is already confirmed, change not possible: ", err)
-			http.Error(w, "Travel is already confirmed, change not possible", http.StatusBadRequest)
-			return
-		} else {
-			travel.Confirmed = confirmed
-		}
-	}
-
-	if co2Compensated > 0 && !confirmed {
+	if newTravel.CO2Compensated > 0 && !newTravel.Confirmed {
 		log.Println("It is not possible to compensate before confirming")
 		http.Error(w, "It is not possible to compensate before confirming", http.StatusBadRequest)
 		return
 	}
 
-	deltaScore, isShortDistance, err := computeDeltaTravelModify(travel, co2Compensated, confirmed)
+	deltaScore, isShortDistance, err := computeDeltaTravelModify(existingTravel, newTravel.CO2Compensated, newTravel.Confirmed)
 	if err != nil {
 		log.Println("Error computing the score to be added: ", err)
 		http.Error(w, "Error computing the score to be added", http.StatusBadRequest)
@@ -560,7 +528,7 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update travel in db
-	err = travelDAO.UpdateTravel(travel, deltaScore, isShortDistance)
+	err = travelDAO.UpdateTravel(newTravel, deltaScore, isShortDistance)
 	if err != nil {
 		log.Println("Error interacting with the db: ", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -569,12 +537,14 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(travel)
+	err = json.NewEncoder(w).Encode(newTravel)
 	if err != nil {
 		log.Println("Error encoding JSON: ", err)
 		http.Error(w, "Error encoding", http.StatusInternalServerError)
 		return
 	}
+
+	log.Println("Travel updated")
 }
 
 func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confirmed bool) (float64, bool, error) {
