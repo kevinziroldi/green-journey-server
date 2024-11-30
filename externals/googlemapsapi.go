@@ -184,6 +184,9 @@ func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, h
 	if destinationCity.CountryName != nil {
 		destinationCountry = *destinationCity.CountryName
 	}
+
+	unifiedTime := time.Date(date.Year(), date.Month(), date.Day(), hour.Hour(), hour.Minute(), 0, 0, hour.Location())
+
 	segment := model.Segment{
 		// id auto increment
 		DepartureId:        originCity.CityID,
@@ -192,8 +195,8 @@ func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, h
 		DepartureCountry:   departureCountry,
 		DestinationCity:    destinationCity.CityName,
 		DestinationCountry: destinationCountry,
-		Date:               date,
-		Hour:               hour,
+		Date:               unifiedTime,
+		Hour:               unifiedTime,
 		Duration:           time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
 		Vehicle:            "bike",
 		Description:        "",
@@ -290,6 +293,9 @@ func GetDirectionsCar(originCity, destinationCity model.City, date time.Time, ho
 	if destinationCity.CountryName != nil {
 		destinationCountry = *destinationCity.CountryName
 	}
+
+	unifiedTime := time.Date(date.Year(), date.Month(), date.Day(), hour.Hour(), hour.Minute(), 0, 0, hour.Location())
+
 	segment := model.Segment{
 		// id auto increment
 		DepartureId:        originCity.CityID,
@@ -298,8 +304,8 @@ func GetDirectionsCar(originCity, destinationCity model.City, date time.Time, ho
 		DepartureCountry:   departureCountry,
 		DestinationCity:    destinationCity.CityName,
 		DestinationCountry: destinationCountry,
-		Date:               date,
-		Hour:               hour,
+		Date:               unifiedTime,
+		Hour:               unifiedTime,
 		Duration:           time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
 		Vehicle:            "car",
 		Description:        "",
