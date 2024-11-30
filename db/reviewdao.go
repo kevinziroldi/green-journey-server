@@ -298,10 +298,9 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.BestReviewElement, error) 
 
 	err := reviewDAO.db.
 		Table("reviews_aggregated").
-		Select("*, " +
-			"((sum_local_transport_rating / NULLIF(count_local_transport_rating, 0)) + (sum_green_spaces_rating / NULLIF(count_green_spaces_rating, 0)) + (sum_waste_bins_rating / NULLIF(count_waste_bins_rating, 0))) AS total_average").
+		Select("*, ((sum_local_transport_rating / NULLIF(count_local_transport_rating, 0)) + (sum_green_spaces_rating / NULLIF(count_green_spaces_rating, 0)) + (sum_waste_bins_rating / NULLIF(count_waste_bins_rating, 0))) AS total_average").
 		Order("total_average DESC").
-		Limit(10).
+		Limit(5).
 		Scan(&reviewsAggregatedList)
 
 	if err.Error != nil {
@@ -310,6 +309,14 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.BestReviewElement, error) 
 		} else {
 			return nil, err.Error
 		}
+	}
+
+	// inject average
+	for i, _ := range reviewsAggregatedList {
+		// inject averages
+		reviewsAggregatedList[i].AverageLocalTransportRating = float64(reviewsAggregatedList[i].SumLocalTransportRating) / float64(reviewsAggregatedList[i].CountLocalTransportRating)
+		reviewsAggregatedList[i].AverageGreenSpacesRating = float64(reviewsAggregatedList[i].SumGreenSpacesRating) / float64(reviewsAggregatedList[i].CountGreenSpacesRating)
+		reviewsAggregatedList[i].AverageWasteBinsRating = float64(reviewsAggregatedList[i].SumWasteBinsRating) / float64(reviewsAggregatedList[i].CountWasteBinsRating)
 	}
 
 	var bestReviewsElements []model.BestReviewElement
