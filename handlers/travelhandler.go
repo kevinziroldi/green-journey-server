@@ -187,6 +187,8 @@ func HandleTravelsUser(w http.ResponseWriter, r *http.Request) {
 		getTravelsByUserId(w, r)
 	case "POST":
 		createTravel(w, r)
+	case "PUT":
+		modifyTravel(w, r)
 	default:
 		log.Println("Method not supported")
 		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
@@ -429,18 +431,6 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandleModifyTravel(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "PUT":
-		modifyTravel(w, r)
-	case "DELETE":
-		deleteTravel(w, r)
-	default:
-		log.Println("Method not supported")
-		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
-	}
-}
-
 func modifyTravel(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "PUT" {
 		log.Println("Method not supported")
@@ -584,6 +574,16 @@ func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confi
 	}
 
 	return deltaScore, isShortDistance, nil
+}
+
+func HandleModifyTravel(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "DELETE":
+		deleteTravel(w, r)
+	default:
+		log.Println("Method not supported")
+		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
+	}
 }
 
 // deleting travel from db automatically deletes segments (cascade)
