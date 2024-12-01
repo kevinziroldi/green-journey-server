@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"gorm.io/gorm"
 	"green-journey-server/db"
 	"green-journey-server/externals"
@@ -106,13 +105,9 @@ func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("RECEIVED DATE AND TIME: ", departureDate, departureTime)
-
 	// convert date and time to UTC
 	departureDate = departureDate.UTC()
 	departureTime = departureTime.UTC()
-
-	fmt.Println("NEW DATE AND TIME: ", departureDate, departureTime)
 
 	// call all apis and return data
 	// always retrieve outward data
@@ -124,7 +119,7 @@ func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	elapsed := time.Since(start)
-	fmt.Println("CALL SEARCH TRAVEL took:", elapsed)
+	log.Println("TOTAL SEARCH TRAVEL call took:", elapsed)
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)

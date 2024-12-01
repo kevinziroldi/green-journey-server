@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"green-journey-server/handlers"
 	"log"
 	"net/http"
@@ -22,7 +21,7 @@ func SetupRoutes(port string) {
 
 	http.HandleFunc("/ranking", handlers.HandleRanking)
 
-	fmt.Println("Server starting on port " + port)
+	log.Println("Server starting on port " + port)
 
 	// start server
 	err := http.ListenAndServe(":"+port, nil)

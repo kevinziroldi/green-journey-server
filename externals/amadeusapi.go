@@ -210,7 +210,7 @@ func GetFlights(departureCity, destinationCity model.City, date time.Time, isOut
 	}
 
 	elapsed := time.Since(start)
-	fmt.Println("Amadeus API took", elapsed)
+	log.Println("CALL Amadeus API took", elapsed)
 
 	start = time.Now()
 
@@ -347,7 +347,7 @@ func GetFlights(departureCity, destinationCity model.City, date time.Time, isOut
 	}
 
 	elapsed = time.Since(start)
-	fmt.Println("ANALYZING Amadeus API flights took: ", elapsed)
+	log.Println("ANALYZING Amadeus API took: ", elapsed)
 
 	return flights, nil
 }

@@ -140,7 +140,7 @@ func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, h
 	}()
 
 	elapsed := time.Since(start)
-	fmt.Println("BIKE request took: ", elapsed)
+	log.Println("CALL Google Maps API Bike took: ", elapsed)
 
 	start = time.Now()
 
@@ -208,7 +208,7 @@ func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, h
 	}
 
 	elapsed = time.Since(start)
-	fmt.Println("Analyzing BIKE took: ", elapsed)
+	log.Println("ANALYZING Google Maps API Bike took: ", elapsed)
 
 	return []model.Segment{segment}, nil
 }
@@ -245,7 +245,7 @@ func GetDirectionsCar(originCity, destinationCity model.City, date time.Time, ho
 	}()
 
 	elapsed := time.Since(start)
-	fmt.Println("Car request took: ", elapsed)
+	log.Println("CALL Google Maps API Car took: ", elapsed)
 
 	start = time.Now()
 
@@ -316,7 +316,7 @@ func GetDirectionsCar(originCity, destinationCity model.City, date time.Time, ho
 	}
 
 	elapsed = time.Since(start)
-	fmt.Println("Time to analyze car: ", elapsed)
+	log.Println("ANALYZING Google Maps API Car took: ", elapsed)
 
 	return []model.Segment{segment}, nil
 }
@@ -357,7 +357,7 @@ func GetDirectionsTrain(originCity, destinationCity model.City, date, hour time.
 	}()
 
 	elapsed := time.Since(start)
-	fmt.Println("Train request took: ", elapsed)
+	log.Println("CALL Google Maps API Train took: ", elapsed)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -413,7 +413,7 @@ func GetDirectionsBus(originCity, destinationCity model.City, date, hour time.Ti
 	}()
 
 	elapsed := time.Since(start)
-	fmt.Println("Bus request took: ", elapsed)
+	log.Println("CALL Google Maps API Bus took: ", elapsed)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -453,11 +453,6 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 		log.Println("Error decoding json response: ", err)
 		return nil, err
 	}
-
-	elapsed := time.Since(start)
-	fmt.Println("Time to DECODE transit: ", elapsed)
-
-	start = time.Now()
 
 	// check no missing data
 	if len(response.Routes) == 0 ||
@@ -602,17 +597,12 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 		segments = append(segments, segment)
 	}
 
-	elapsed = time.Since(start)
-	fmt.Println("Time to CREATE SEGMENTS: ", elapsed)
-
-	start = time.Now()
-
 	segments = resetDepDestCity(segments, originCity, destinationCity)
 	segments = compactTransitSegments(segments)
 	segments = setMissingDataWalkingSegments(segments, originCity, destinationCity)
 
-	elapsed = time.Since(start)
-	fmt.Println("Time to REARRANGE SEGMENTS: ", elapsed)
+	elapsed := time.Since(start)
+	log.Println("ANALYZING Google Maps API Train/Bus took: ", elapsed)
 
 	return segments, nil
 }

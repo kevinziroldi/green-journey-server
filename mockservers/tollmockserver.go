@@ -1,7 +1,6 @@
 package mockservers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,7 +11,7 @@ var tollCostPerKm = 0.09
 func StartTollApiServer() {
 	http.HandleFunc("/tollapi", TollApiHandler)
 
-	fmt.Println("Toll API server starting on port 8081")
+	log.Println("Toll API server starting on port 8081")
 
 	err := http.ListenAndServe(":8081", nil)
 	if err != nil {
@@ -49,7 +48,7 @@ func TollApiHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte(`{"toll-cost": ` + strconv.FormatFloat(tollCost, 'f', 2, 64) + `}`))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		http.Error(w, "error while writing the response", http.StatusInternalServerError)
 	}
 }

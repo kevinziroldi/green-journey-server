@@ -1,7 +1,6 @@
 package mockservers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,7 +9,7 @@ import (
 func StartFuelCostApiServer() {
 	http.HandleFunc("/fuelcostapi", FuelCostApiHandler)
 
-	fmt.Println("Fuel cost API server starting on port 8083")
+	log.Println("Fuel cost API server starting on port 8083")
 
 	err := http.ListenAndServe(":8083", nil)
 	if err != nil {
@@ -31,7 +30,7 @@ func FuelCostApiHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte(`{"toll-cost": ` + strconv.FormatFloat(fuelCost, 'f', 2, 64) + `}`))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		http.Error(w, "error while writing the response", http.StatusInternalServerError)
 	}
 }
