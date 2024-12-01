@@ -419,8 +419,7 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 
 	// reset time zone
 	for i, _ := range travelDetails.Segments {
-		travelDetails.Segments[i].Date = travelDetails.Segments[i].Date.UTC()
-		travelDetails.Segments[i].Hour = travelDetails.Segments[i].Date.UTC()
+		travelDetails.Segments[i].DateTime = travelDetails.Segments[i].DateTime.UTC()
 	}
 
 	// insert travel

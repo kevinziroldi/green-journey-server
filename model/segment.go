@@ -10,8 +10,7 @@ type Segment struct {
 	DepartureCountry   string        `gorm:"-" json:"departure_country"`
 	DestinationCity    string        `gorm:"-" json:"destination_city"`
 	DestinationCountry string        `gorm:"-" json:"destination_country"`
-	Date               time.Time     `gorm:"column:date;type:date;not null" json:"date"`
-	Hour               time.Time     `gorm:"column:hour;type:timestamptz;not null" json:"date_time"`
+	DateTime           time.Time     `gorm:"column:date_time;type:timestamptz;not null" json:"date_time"`
 	Duration           time.Duration `gorm:"column:duration;type:interval;not null" json:"duration"`
 	Vehicle            string        `gorm:"column:vehicle;type:text;not null" json:"vehicle"`
 	Description        string        `gorm:"column:description;type:text" json:"description"`

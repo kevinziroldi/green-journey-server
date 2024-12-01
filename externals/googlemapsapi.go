@@ -195,8 +195,7 @@ func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, h
 		DepartureCountry:   departureCountry,
 		DestinationCity:    destinationCity.CityName,
 		DestinationCountry: destinationCountry,
-		Date:               unifiedTime,
-		Hour:               unifiedTime,
+		DateTime:           unifiedTime,
 		Duration:           time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
 		Vehicle:            "bike",
 		Description:        "",
@@ -304,8 +303,7 @@ func GetDirectionsCar(originCity, destinationCity model.City, date time.Time, ho
 		DepartureCountry:   departureCountry,
 		DestinationCity:    destinationCity.CityName,
 		DestinationCountry: destinationCountry,
-		Date:               unifiedTime,
-		Hour:               unifiedTime,
+		DateTime:           unifiedTime,
 		Duration:           time.Duration(response.Rows[0].Elements[0].Duration.Value * int(time.Second)),
 		Vehicle:            "car",
 		Description:        "",
@@ -496,8 +494,7 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 				DestinationCity:    "", // updated at the end
 				DepartureCountry:   "", // updated at the end
 				DestinationCountry: "", // updated at the end
-				Date:               time.Unix(0, 0),
-				Hour:               time.Unix(0, 0),
+				DateTime:           time.Unix(0, 0),
 				Duration:           time.Duration(duration) * time.Second,
 				Vehicle:            "walk",
 				Description:        "",
@@ -588,8 +585,7 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 				DepartureCountry:   departureCountry,
 				DestinationCity:    stepDestCity.CityName,
 				DestinationCountry: destinationCountry,
-				Date:               time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
-				Hour:               time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
+				DateTime:           time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
 				Duration:           time.Duration(step.Duration.Value) * time.Second,
 				Vehicle:            travelMode,
 				Description:        step.TransitDetails.Line.ShortName + ", " + step.TransitDetails.Line.Name,
@@ -682,8 +678,7 @@ func compactTransitSegments(segments []model.Segment) []model.Segment {
 					DepartureCountry:   "", // updated at the end
 					DestinationCity:    "", // updated at the end
 					DestinationCountry: "", // updated at the end
-					Date:               time.Unix(0, 0),
-					Hour:               time.Unix(0, 0),
+					DateTime:           time.Unix(0, 0),
 					Duration:           totDuration,
 					Vehicle:            "walk",
 					Description:        "",
@@ -734,19 +729,17 @@ func setMissingDataWalkingSegments(segments []model.Segment, originCity, destina
 			if segments[i].NumSegment == len(segments) {
 				// if last segment, based on previous segment (if present)
 				if segments[i].NumSegment > 1 {
-					prevTime := segments[i-1].Hour
+					prevTime := segments[i-1].DateTime
 					prevDuration := segments[i-1].Duration
 					walkDepTime := prevTime.Add(prevDuration)
-					segments[i].Date = walkDepTime
-					segments[i].Hour = walkDepTime
+					segments[i].DateTime = walkDepTime
 				}
 			} else {
 				// if not the last segment, based on the next segment
-				nextTime := segments[i+1].Hour
+				nextTime := segments[i+1].DateTime
 				walkDuration := segments[i].Duration
 				walkDepTime := nextTime.Add(-walkDuration)
-				segments[i].Date = walkDepTime
-				segments[i].Hour = walkDepTime
+				segments[i].DateTime = walkDepTime
 			}
 		}
 		// else don't modify
