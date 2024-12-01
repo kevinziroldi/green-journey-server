@@ -106,6 +106,14 @@ func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("RECEIVED DATE AND TIME: ", departureDate, departureTime)
+
+	// convert date and time to UTC
+	departureDate = departureDate.UTC()
+	departureTime = departureTime.UTC()
+
+	fmt.Println("NEW DATE AND TIME: ", departureDate, departureTime)
+
 	// call all apis and return data
 	// always retrieve outward data
 	travelOptions := ComputeApiData(departureCity, destinationCity, departureDate, departureTime, isOutward)
@@ -407,6 +415,12 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 		log.Println("Invalid num segment")
 		http.Error(w, "Invalid num segment", http.StatusBadRequest)
 		return
+	}
+
+	// reset time zone
+	for i, _ := range travelDetails.Segments {
+		travelDetails.Segments[i].Date = travelDetails.Segments[i].Date.UTC()
+		travelDetails.Segments[i].Hour = travelDetails.Segments[i].Date.UTC()
 	}
 
 	// insert travel
