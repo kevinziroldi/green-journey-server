@@ -478,7 +478,7 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 
 			distance := 0.0
 			if step.Distance != nil {
-				distance = float64(step.Distance.Value)
+				distance = float64(step.Distance.Value) / 1000
 			}
 
 			segment = model.Segment{
