@@ -45,7 +45,6 @@ func TollApiHandler(w http.ResponseWriter, r *http.Request) {
 	tollCost := tollCostPerKm * float64(distance)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte(`{"toll-cost": ` + strconv.FormatFloat(tollCost, 'f', 2, 64) + `}`))
 	if err != nil {
 		log.Println(err)

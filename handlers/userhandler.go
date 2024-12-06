@@ -64,7 +64,6 @@ func getUserByFirebaseUID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func addUser(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +161,6 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
 }
 
 func HandleModifyUser(w http.ResponseWriter, r *http.Request) {
@@ -287,7 +285,6 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
@@ -329,6 +326,4 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error while deleting user", http.StatusBadRequest)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }

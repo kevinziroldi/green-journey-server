@@ -159,7 +159,6 @@ func createReview(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
 }
 
 func HandleModifyReviews(w http.ResponseWriter, r *http.Request) {
@@ -281,7 +280,6 @@ func modifyReview(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func deleteReview(w http.ResponseWriter, r *http.Request) {
@@ -357,8 +355,6 @@ func deleteReview(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error while deleting user", http.StatusBadRequest)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func HandleBestReviews(w http.ResponseWriter, r *http.Request) {
@@ -397,5 +393,4 @@ func getBestReviews(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }

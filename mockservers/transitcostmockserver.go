@@ -66,7 +66,6 @@ func TransitCostApiHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte(`{"transit-cost": ` + strconv.FormatFloat(transitCost, 'f', 2, 64) + `}`))
 	if err != nil {
 		log.Println(err)

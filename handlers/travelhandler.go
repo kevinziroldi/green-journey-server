@@ -427,7 +427,6 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send response
-	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(travelDetails)
 	if err != nil {
@@ -529,7 +528,6 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(newTravel)
 	if err != nil {
@@ -670,8 +668,6 @@ func deleteTravel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error interacting with the db", http.StatusBadRequest)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func computeDeltaTravelDelete(travel model.Travel) (float64, bool, error) {
