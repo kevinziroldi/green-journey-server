@@ -512,6 +512,11 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "It is not possible to compensate before confirming", http.StatusBadRequest)
 		return
 	}
+	if newTravel.CO2Compensated < existingTravel.CO2Compensated {
+		log.Println("It is not possible to remove compensated CO2")
+		http.Error(w, "It is not possible to remove compensated CO2", http.StatusBadRequest)
+		return
+	}
 
 	deltaScore, isShortDistance, err := computeDeltaTravelModify(existingTravel, newTravel.CO2Compensated, newTravel.Confirmed)
 	if err != nil {
@@ -535,8 +540,6 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding", http.StatusInternalServerError)
 		return
 	}
-
-	log.Println("Travel updated")
 }
 
 func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confirmed bool) (float64, bool, error) {
