@@ -682,6 +682,12 @@ func computeDeltaTravelDelete(travel model.Travel) (float64, bool, error) {
 		return 0, true, err
 	}
 
+	if !travelDetails.Travel.Confirmed {
+		// score was not added yet
+		// no matter short or long distance
+		return 0, true, nil
+	}
+
 	// compute total distance and co2 emitted
 	totalDistance := 0.0
 	totalCO2Emitted := 0.0
