@@ -116,12 +116,14 @@ func computeRankingElement(user model.User, isShortDistance bool) (model.Ranking
 	}
 
 	for _, travelDetails := range travels {
-		totalCO2Compensated += travelDetails.Travel.CO2Compensated
+		if travelDetails.Travel.Confirmed {
+			totalCO2Compensated += travelDetails.Travel.CO2Compensated
 
-		for _, segment := range travelDetails.Segments {
-			totalDistance += segment.Distance
-			totalDuration += segment.Duration
-			totalCO2Emitted += segment.CO2Emitted
+			for _, segment := range travelDetails.Segments {
+				totalDistance += segment.Distance
+				totalDuration += segment.Duration
+				totalCO2Emitted += segment.CO2Emitted
+			}
 		}
 	}
 
