@@ -102,9 +102,6 @@ func (reviewDAO *ReviewDAO) GetCityReviewElementByCityID(cityID int) (model.City
 
 	cityReviewElement := model.CityReviewElement{
 		Reviews:                     reviews,
-		CountLocalTransportRating:   len(reviews),
-		CountGreenSpacesRating:      len(reviews),
-		CountWasteBinsRating:        len(reviews),
 		AverageLocalTransportRating: averageLocalTransportRating,
 		AverageGreenSpacesRating:    averageGreenSpacesRating,
 		AverageWasteBinsRating:      averageWasteBinsRating,
@@ -169,13 +166,11 @@ func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
 		} else {
 			// create the tuple
 			reviewsAggregated = model.ReviewsAggregated{
-				CityID:                    review.CityID,
-				SumLocalTransportRating:   review.LocalTransportRating,
-				SumGreenSpacesRating:      review.GreenSpacesRating,
-				SumWasteBinsRating:        review.WasteBinsRating,
-				CountLocalTransportRating: 1,
-				CountGreenSpacesRating:    1,
-				CountWasteBinsRating:      1,
+				CityID:                  review.CityID,
+				SumLocalTransportRating: review.LocalTransportRating,
+				SumGreenSpacesRating:    review.GreenSpacesRating,
+				SumWasteBinsRating:      review.WasteBinsRating,
+				NumberRatings:           1,
 			}
 			result = transaction.Save(&reviewsAggregated)
 			if result.Error != nil {
@@ -185,9 +180,7 @@ func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
 		}
 	} else {
 		// tuple already existing, update
-		reviewsAggregated.CountLocalTransportRating += 1
-		reviewsAggregated.CountGreenSpacesRating += 1
-		reviewsAggregated.CountWasteBinsRating += 1
+		reviewsAggregated.NumberRatings += 1
 		reviewsAggregated.SumLocalTransportRating += review.LocalTransportRating
 		reviewsAggregated.SumGreenSpacesRating += review.GreenSpacesRating
 		reviewsAggregated.SumWasteBinsRating += review.WasteBinsRating
@@ -311,9 +304,7 @@ func (reviewDAO *ReviewDAO) DeleteReview(reviewID int) error {
 	}
 
 	// update reviewsAggregated
-	reviewsAggregated.CountLocalTransportRating -= 1
-	reviewsAggregated.CountGreenSpacesRating -= 1
-	reviewsAggregated.CountWasteBinsRating -= 1
+	reviewsAggregated.NumberRatings -= 1
 	reviewsAggregated.SumLocalTransportRating -= review.LocalTransportRating
 	reviewsAggregated.SumGreenSpacesRating -= review.GreenSpacesRating
 	reviewsAggregated.SumWasteBinsRating -= review.WasteBinsRating
@@ -337,7 +328,7 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.CityReviewElement, error) 
 
 	err := reviewDAO.db.
 		Table("reviews_aggregated").
-		Select("*, ((sum_local_transport_rating / NULLIF(count_local_transport_rating, 0)) + (sum_green_spaces_rating / NULLIF(count_green_spaces_rating, 0)) + (sum_waste_bins_rating / NULLIF(count_waste_bins_rating, 0))) AS total_average").
+		Select("*, ((sum_local_transport_rating / NULLIF(number_ratings, 0)) + (sum_green_spaces_rating / NULLIF(number_ratings, 0)) + (sum_waste_bins_rating / NULLIF(number_ratings, 0))) AS total_average").
 		Order("total_average DESC").
 		Limit(5).
 		Scan(&reviewsAggregatedList)
@@ -353,9 +344,9 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.CityReviewElement, error) 
 	// inject average
 	for i, _ := range reviewsAggregatedList {
 		// inject averages
-		reviewsAggregatedList[i].AverageLocalTransportRating = float64(reviewsAggregatedList[i].SumLocalTransportRating) / float64(reviewsAggregatedList[i].CountLocalTransportRating)
-		reviewsAggregatedList[i].AverageGreenSpacesRating = float64(reviewsAggregatedList[i].SumGreenSpacesRating) / float64(reviewsAggregatedList[i].CountGreenSpacesRating)
-		reviewsAggregatedList[i].AverageWasteBinsRating = float64(reviewsAggregatedList[i].SumWasteBinsRating) / float64(reviewsAggregatedList[i].CountWasteBinsRating)
+		reviewsAggregatedList[i].AverageLocalTransportRating = float64(reviewsAggregatedList[i].SumLocalTransportRating) / float64(reviewsAggregatedList[i].NumberRatings)
+		reviewsAggregatedList[i].AverageGreenSpacesRating = float64(reviewsAggregatedList[i].SumGreenSpacesRating) / float64(reviewsAggregatedList[i].NumberRatings)
+		reviewsAggregatedList[i].AverageWasteBinsRating = float64(reviewsAggregatedList[i].SumWasteBinsRating) / float64(reviewsAggregatedList[i].NumberRatings)
 	}
 
 	var bestReviewsElements []model.CityReviewElement
@@ -369,9 +360,6 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.CityReviewElement, error) 
 		// build BestReviewsElement
 		bestReviewsElement := model.CityReviewElement{
 			Reviews:                     reviews,
-			CountLocalTransportRating:   reviewsAggregatedList[i].CountLocalTransportRating,
-			CountGreenSpacesRating:      reviewsAggregatedList[i].CountGreenSpacesRating,
-			CountWasteBinsRating:        reviewsAggregatedList[i].CountWasteBinsRating,
 			AverageLocalTransportRating: reviewsAggregatedList[i].AverageLocalTransportRating,
 			AverageGreenSpacesRating:    reviewsAggregatedList[i].AverageGreenSpacesRating,
 			AverageWasteBinsRating:      reviewsAggregatedList[i].AverageWasteBinsRating,
@@ -382,70 +370,3 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.CityReviewElement, error) 
 
 	return bestReviewsElements, nil
 }
-
-/*
-func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.CityReviewElement, error) {
-	// get all cities
-	cityDAO := NewCityDAO(GetDB())
-	cities, err := cityDAO.GetCities()
-	if err != nil {
-		return nil, err
-	}
-
-	// for every city, get aggregate data
-	var reviewsAggregatedList []model.ReviewsAggregated
-	for _, city := range cities {
-		var reviewsAggregated model.ReviewsAggregated
-		result := reviewDAO.db.First(&reviewsAggregated, city.CityID)
-		if result.Error != nil {
-			// city doesn't contain tuples or other error
-			// just skip one city
-			continue
-		}
-		// inject averages
-		reviewsAggregated.AverageLocalTransportRating = float64(reviewsAggregated.SumLocalTransportRating) / float64(reviewsAggregated.CountLocalTransportRating)
-		reviewsAggregated.AverageGreenSpacesRating = float64(reviewsAggregated.SumGreenSpacesRating) / float64(reviewsAggregated.CountGreenSpacesRating)
-		reviewsAggregated.AverageWasteBinsRating = float64(reviewsAggregated.SumWasteBinsRating) / float64(reviewsAggregated.CountWasteBinsRating)
-		// append
-		reviewsAggregatedList = append(reviewsAggregatedList, reviewsAggregated)
-	}
-
-	// sort slice according to higher sum of averages, if tie according to number of reviews
-	sort.Slice(reviewsAggregatedList, func(i, j int) bool {
-		sumAveragesI := reviewsAggregatedList[i].AverageLocalTransportRating + reviewsAggregatedList[i].AverageGreenSpacesRating + reviewsAggregatedList[i].AverageWasteBinsRating
-		sumAveragesJ := reviewsAggregatedList[j].AverageLocalTransportRating + reviewsAggregatedList[j].AverageGreenSpacesRating + reviewsAggregatedList[j].AverageWasteBinsRating
-		countI := reviewsAggregatedList[i].CountLocalTransportRating + reviewsAggregatedList[i].CountGreenSpacesRating + reviewsAggregatedList[i].CountWasteBinsRating
-		countJ := reviewsAggregatedList[j].CountLocalTransportRating + reviewsAggregatedList[j].CountGreenSpacesRating + reviewsAggregatedList[j].CountWasteBinsRating
-
-		if sumAveragesI == sumAveragesJ {
-			return countI >= countJ
-		}
-		// else
-		return sumAveragesI > sumAveragesJ
-	})
-
-	var bestReviewsElements []model.CityReviewElement
-	for i := 0; i < len(reviewsAggregatedList) && i < bestReviewsNumber; i++ {
-		// get reviews
-		reviews, err1 := reviewDAO.GetReviewsByCity(reviewsAggregatedList[i].CityID)
-		if err1 != nil {
-			return nil, err1
-		}
-
-		// build BestReviewsElement
-		bestReviewsElement := model.CityReviewElement{
-			Reviews:                     reviews,
-			CountLocalTransportRating:   reviewsAggregatedList[i].CountLocalTransportRating,
-			CountGreenSpacesRating:      reviewsAggregatedList[i].CountGreenSpacesRating,
-			CountWasteBinsRating:        reviewsAggregatedList[i].CountWasteBinsRating,
-			AverageLocalTransportRating: reviewsAggregatedList[i].AverageLocalTransportRating,
-			AverageGreenSpacesRating:    reviewsAggregatedList[i].AverageGreenSpacesRating,
-			AverageWasteBinsRating:      reviewsAggregatedList[i].AverageWasteBinsRating,
-		}
-
-		bestReviewsElements = append(bestReviewsElements, bestReviewsElement)
-	}
-
-	return bestReviewsElements, nil
-}
-*/
