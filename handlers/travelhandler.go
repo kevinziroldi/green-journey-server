@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"green-journey-server/db"
 	"green-journey-server/externals"
+	"green-journey-server/internals"
 	"green-journey-server/model"
 	"log"
 	"net/http"
@@ -19,14 +20,6 @@ import (
 type TravelOptions struct {
 	Options [][]model.Segment `json:"options"`
 }
-
-// TODO sono da modificare !!!
-const travelCoefficient = 10.0
-const compensationCoefficient = 10.0
-const bonusScore = 100.0
-
-// travels <= 800 km are short, > 800 km are long
-const distanceBoundary = 800
 
 func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -518,7 +511,14 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deltaScore, isShortDistance, err := computeDeltaTravelModify(existingTravel, newTravel.CO2Compensated, newTravel.Confirmed)
+	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(existingTravel.TravelID)
+	if err != nil {
+		log.Println("Error retrieving travel details: ", err)
+		http.Error(w, "Error retrieving travel details", http.StatusBadRequest)
+		return
+	}
+
+	deltaScore, isShortDistance, err := internals.ComputeDeltaScoreModify(travelDetails, newTravel.CO2Compensated, newTravel.Confirmed)
 	if err != nil {
 		log.Println("Error computing the score to be added: ", err)
 		http.Error(w, "Error computing the score to be added", http.StatusBadRequest)
@@ -540,45 +540,6 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding", http.StatusInternalServerError)
 		return
 	}
-}
-
-func computeDeltaTravelModify(travel model.Travel, co2Compensated float64, confirmed bool) (float64, bool, error) {
-	deltaScore := 0.0
-
-	travelDAO := db.NewTravelDAO(db.GetDB())
-	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(travel.TravelID)
-	if err != nil {
-		return 0, true, err
-	}
-
-	// compute total distance and co2 emitted
-	totalDistance := 0.0
-	totalCO2Emitted := 0.0
-	for _, segment := range travelDetails.Segments {
-		totalDistance += segment.Distance
-		totalCO2Emitted += segment.CO2Emitted
-	}
-
-	var isShortDistance bool
-	if totalDistance <= distanceBoundary {
-		isShortDistance = true
-	} else {
-		isShortDistance = false
-	}
-
-	if !travel.Confirmed && confirmed {
-		deltaScore += travelCoefficient * totalDistance / (0.001 + totalCO2Emitted)
-	}
-
-	if travel.CO2Compensated < co2Compensated {
-		deltaScore += compensationCoefficient * (co2Compensated - travel.CO2Compensated)
-
-		if co2Compensated == totalCO2Emitted {
-			deltaScore += bonusScore
-		}
-	}
-
-	return deltaScore, isShortDistance, nil
 }
 
 func HandleDeleteTravel(w http.ResponseWriter, r *http.Request) {
@@ -658,7 +619,14 @@ func deleteTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deltaScore, isShortDistance, err := computeDeltaTravelDelete(travel)
+	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(travel.TravelID)
+	if err != nil {
+		log.Println("Error retrieving travel details: ", err)
+		http.Error(w, "Error retrieving travel details", http.StatusBadRequest)
+		return
+	}
+
+	deltaScore, isShortDistance, err := internals.ComputeDeltaScoreDelete(travelDetails)
 	if err != nil {
 		log.Println("Error computing the score to be removed: ", err)
 		http.Error(w, "Error computing the score to be removed", http.StatusBadRequest)
@@ -671,43 +639,4 @@ func deleteTravel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error interacting with the db", http.StatusBadRequest)
 		return
 	}
-}
-
-func computeDeltaTravelDelete(travel model.Travel) (float64, bool, error) {
-	deltaScore := 0.0
-
-	travelDAO := db.NewTravelDAO(db.GetDB())
-	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(travel.TravelID)
-	if err != nil {
-		return 0, true, err
-	}
-
-	if !travelDetails.Travel.Confirmed {
-		// score was not added yet
-		// no matter short or long distance
-		return 0, true, nil
-	}
-
-	// compute total distance and co2 emitted
-	totalDistance := 0.0
-	totalCO2Emitted := 0.0
-	for _, segment := range travelDetails.Segments {
-		totalDistance += segment.Distance
-		totalCO2Emitted += segment.CO2Emitted
-	}
-
-	var isShortDistance bool
-	if totalDistance <= distanceBoundary {
-		isShortDistance = true
-	} else {
-		isShortDistance = false
-	}
-
-	deltaScore += travelCoefficient * totalDistance / (0.001 + totalCO2Emitted)
-	deltaScore += compensationCoefficient * travel.CO2Compensated
-	if travel.CO2Compensated == totalCO2Emitted {
-		deltaScore += bonusScore
-	}
-
-	return deltaScore, isShortDistance, nil
 }

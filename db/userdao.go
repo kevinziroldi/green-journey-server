@@ -3,31 +3,13 @@ package db
 import (
 	"errors"
 	"gorm.io/gorm"
+	"green-journey-server/internals"
 	"green-journey-server/model"
 )
 
 type UserDAO struct {
 	db *gorm.DB
 }
-
-const travelCoefficient = 10.0
-const compensationCoefficient = 10.0
-
-const distanceLowLimit = 3000
-const distanceMidLimit = 3000
-const distanceHighLimit = 3000
-
-const ecologicalChoiceLowLimit = 1  // TODO
-const ecologicalChoiceMidLimit = 2  // TODO
-const ecologicalChoiceHighLimit = 3 // TODO
-
-const compensationLowLimit = 1  // TODO
-const compensationMidLimit = 2  // TODO
-const compensationHighLimit = 3 // TODO
-
-const numTravelsLowLimit = 5
-const numTravelsMidLimit = 10
-const numTravelsHighLimit = 30
 
 func NewUserDAO(db *gorm.DB) *UserDAO {
 	return &UserDAO{db: db}
@@ -83,39 +65,21 @@ func (userDAO *UserDAO) InjectBadges(user *model.User) error {
 	}
 
 	// compute badges
-
-	if totalDistance >= distanceHighLimit {
-		badges = append(badges, model.BadgeDistanceHigh)
-	} else if totalDistance >= distanceMidLimit {
-		badges = append(badges, model.BadgeDistanceMid)
-	} else if totalDistance >= distanceLowLimit {
-		badges = append(badges, model.BadgeDistanceLow)
+	distanceBadge, err := internals.ComputeDistanceBadge(totalDistance)
+	if err != nil {
+		badges = append(badges, distanceBadge)
 	}
-
-	ecologicalChoiceValue := travelCoefficient * totalDistance / (0.001 + totalCO2Emitted)
-	if ecologicalChoiceValue >= ecologicalChoiceHighLimit {
-		badges = append(badges, model.BadgeEcologicalChoiceHigh)
-	} else if ecologicalChoiceValue >= ecologicalChoiceMidLimit {
-		badges = append(badges, model.BadgeEcologicalChoiceMid)
-	} else if ecologicalChoiceValue >= ecologicalChoiceLowLimit {
-		badges = append(badges, model.BadgeEcologicalChoiceLow)
+	ecologicalChoiceBadge, err := internals.ComputeEcologicalChoiceBadge(totalDistance, totalCO2Emitted)
+	if err != nil {
+		badges = append(badges, ecologicalChoiceBadge)
 	}
-
-	compensationValue := compensationCoefficient * totalCO2Compensated / (0.001 + totalCO2Emitted)
-	if compensationValue >= compensationHighLimit {
-		badges = append(badges, model.BadgeCompensationHigh)
-	} else if compensationValue >= compensationMidLimit {
-		badges = append(badges, model.BadgeCompensationMid)
-	} else if compensationValue >= compensationLowLimit {
-		badges = append(badges, model.BadgeCompensationLow)
+	compensationBadge, err := internals.ComputeCompensationBadge(totalCO2Compensated, totalCO2Emitted)
+	if err != nil {
+		badges = append(badges, compensationBadge)
 	}
-
-	if numTravels >= numTravelsHighLimit {
-		badges = append(badges, model.BadgeTravelsNumberHigh)
-	} else if numTravels >= numTravelsMidLimit {
-		badges = append(badges, model.BadgeTravelsNumberMid)
-	} else if numTravels >= numTravelsLowLimit {
-		badges = append(badges, model.BadgeTravelsNumberLow)
+	numTravelsBadge, err := internals.ComputeTravelsNumberCoefficient(numTravels)
+	if err != nil {
+		badges = append(badges, numTravelsBadge)
 	}
 
 	// inject badges
