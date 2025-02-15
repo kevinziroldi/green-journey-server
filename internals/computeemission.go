@@ -1,33 +1,16 @@
 package internals
 
+import "math"
+
 func ComputeCarEmission(distance int) float64 {
 	return 0.2 * float64(distance)
 }
 
 func ComputeAircraftEmission(hours, minutes int) float64 {
-	// fuel consumption [tons / hour]
-	var fuelConsumption float64
-	// co2 emitted [kg co2 / kg fuel]
-	const co2Emitted = 3.16
-	var availableSeats int
-	const percentageTakenSeats = 0.85
+	durationMin := float64(hours*60 + minutes)
 
-	if hours <= 5 {
-		// small aircraft
-		fuelConsumption = 3
-		availableSeats = 150
-	} else {
-		// big aircraft
-		fuelConsumption = 6
-		availableSeats = 400
-	}
-
-	flightDuration := float64(hours + minutes/60)
-	flightEmission := co2Emitted * fuelConsumption * 1000 * flightDuration
-	takenSeats := percentageTakenSeats * float64(availableSeats)
-	personEmission := flightEmission / takenSeats
-
-	return personEmission
+	// y = 0,000000002163511 x4 - 0,000003861958034 x3 + 0,001920067332020 x2 + 0,410217102378141 x + 20,868891633418000
+	return 0.000000002163511*math.Pow(durationMin, 4.0) - 0.000003861958034*math.Pow(durationMin, 3.0) + 0.001920067332020*math.Pow(durationMin, 2.0) + 0.410217102378141*durationMin + 20.868891633418000
 }
 
 func ComputeTrainEmission(distance int) float64 {
