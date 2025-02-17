@@ -70,6 +70,6 @@ func ComputeTravelsNumberCoefficient(numTravels int) (model.Badge, error) {
 	} else if numTravels >= numTravelsLowLimit {
 		return model.BadgeTravelsNumberLow, nil
 	} else {
-		return model.BadgeCompensationLow, fmt.Errorf("no badge")
+		return model.BadgeTravelsNumberLow, fmt.Errorf("no badge")
 	}
 }
