@@ -5,24 +5,21 @@ import (
 	"green-journey-server/model"
 )
 
-const distanceLowLimit = 1000  // TODO
-const distanceMidLimit = 2000  // TODO
-const distanceHighLimit = 3000 // TODO
+const distanceLowLimit = 3000
+const distanceMidLimit = 5000
+const distanceHighLimit = 10000
 
-const ecologicalChoiceLowLimit = 1  // TODO
-const ecologicalChoiceMidLimit = 2  // TODO
-const ecologicalChoiceHighLimit = 3 // TODO
+const ecologicalChoiceLowLimit = 15
+const ecologicalChoiceMidLimit = 20
+const ecologicalChoiceHighLimit = 30
 
-const compensationLowLimit = 1  // TODO
-const compensationMidLimit = 2  // TODO
-const compensationHighLimit = 3 // TODO
+const compensationLowLimit = 0.2
+const compensationMidLimit = 0.5
+const compensationHighLimit = 0.8
 
-const numTravelsLowLimit = 5   // TODO
-const numTravelsMidLimit = 10  // TODO
-const numTravelsHighLimit = 30 // TODO
-
-const ecologicalChoiceCoefficient = 1 // TODO
-const compensationCoefficient = 0.12  // TODO
+const numTravelsLowLimit = 5
+const numTravelsMidLimit = 10
+const numTravelsHighLimit = 30
 
 func ComputeDistanceBadge(distance float64) (model.Badge, error) {
 	if distance >= distanceHighLimit {
@@ -37,7 +34,16 @@ func ComputeDistanceBadge(distance float64) (model.Badge, error) {
 }
 
 func ComputeEcologicalChoiceBadge(totalDistance, totalCo2Emitted float64) (model.Badge, error) {
-	ecologicalChoiceValue := ecologicalChoiceCoefficient * totalDistance / (0.001 + totalCo2Emitted)
+	if totalDistance == 0 {
+		return model.BadgeEcologicalChoiceLow, nil
+	}
+
+	if totalCo2Emitted == 0 {
+		// distance > 0
+		return model.BadgeEcologicalChoiceHigh, nil
+	}
+
+	ecologicalChoiceValue := totalDistance / totalCo2Emitted
 	if ecologicalChoiceValue >= ecologicalChoiceHighLimit {
 		return model.BadgeEcologicalChoiceHigh, nil
 	} else if ecologicalChoiceValue >= ecologicalChoiceMidLimit {
@@ -50,7 +56,14 @@ func ComputeEcologicalChoiceBadge(totalDistance, totalCo2Emitted float64) (model
 }
 
 func ComputeCompensationBadge(totalCO2Compensated, totalCO2Emitted float64) (model.Badge, error) {
-	compensationValue := compensationCoefficient * totalCO2Compensated / (0.001 + totalCO2Emitted)
+	var compensationValue float64
+
+	if totalCO2Emitted == 0 {
+		compensationValue = 0
+	} else {
+		compensationValue = totalCO2Compensated / totalCO2Emitted
+	}
+
 	if compensationValue >= compensationHighLimit {
 		return model.BadgeCompensationHigh, nil
 	} else if compensationValue >= compensationMidLimit {
