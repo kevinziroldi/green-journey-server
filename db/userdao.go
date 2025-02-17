@@ -66,25 +66,24 @@ func (userDAO *UserDAO) InjectBadges(user *model.User) error {
 
 	// compute badges
 	distanceBadge, err := internals.ComputeDistanceBadge(totalDistance)
-	if err != nil {
+	if err == nil {
 		badges = append(badges, distanceBadge)
 	}
 	ecologicalChoiceBadge, err := internals.ComputeEcologicalChoiceBadge(totalDistance, totalCO2Emitted)
-	if err != nil {
+	if err == nil {
 		badges = append(badges, ecologicalChoiceBadge)
 	}
 	compensationBadge, err := internals.ComputeCompensationBadge(totalCO2Compensated, totalCO2Emitted)
-	if err != nil {
+	if err == nil {
 		badges = append(badges, compensationBadge)
 	}
 	numTravelsBadge, err := internals.ComputeTravelsNumberCoefficient(numTravels)
-	if err != nil {
+	if err == nil {
 		badges = append(badges, numTravelsBadge)
 	}
 
 	// inject badges
 	user.Badges = badges
-
 	return nil
 }
 

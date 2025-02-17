@@ -24,20 +24,20 @@ const numTravelsHighLimit = 30
 func ComputeDistanceBadge(distance float64) (model.Badge, error) {
 	if distance >= distanceHighLimit {
 		return model.BadgeDistanceHigh, nil
-	} else if distance >= distanceMidLimit {
-		return model.BadgeDistanceMid, nil
-	} else if distance >= distanceLowLimit {
-		return model.BadgeDistanceLow, nil
-	} else {
-		return model.BadgeDistanceLow, fmt.Errorf("no badge")
 	}
+	if distance >= distanceMidLimit {
+		return model.BadgeDistanceMid, nil
+	}
+	if distance >= distanceLowLimit {
+		return model.BadgeDistanceLow, nil
+	}
+	return model.BadgeDistanceLow, fmt.Errorf("no badge")
 }
 
 func ComputeEcologicalChoiceBadge(totalDistance, totalCo2Emitted float64) (model.Badge, error) {
 	if totalDistance == 0 {
 		return model.BadgeEcologicalChoiceLow, nil
 	}
-
 	if totalCo2Emitted == 0 {
 		// distance > 0
 		return model.BadgeEcologicalChoiceHigh, nil
@@ -46,13 +46,14 @@ func ComputeEcologicalChoiceBadge(totalDistance, totalCo2Emitted float64) (model
 	ecologicalChoiceValue := totalDistance / totalCo2Emitted
 	if ecologicalChoiceValue >= ecologicalChoiceHighLimit {
 		return model.BadgeEcologicalChoiceHigh, nil
-	} else if ecologicalChoiceValue >= ecologicalChoiceMidLimit {
-		return model.BadgeEcologicalChoiceMid, nil
-	} else if ecologicalChoiceValue >= ecologicalChoiceLowLimit {
-		return model.BadgeEcologicalChoiceLow, nil
-	} else {
-		return model.BadgeEcologicalChoiceLow, fmt.Errorf("no badge")
 	}
+	if ecologicalChoiceValue >= ecologicalChoiceMidLimit {
+		return model.BadgeEcologicalChoiceMid, nil
+	}
+	if ecologicalChoiceValue >= ecologicalChoiceLowLimit {
+		return model.BadgeEcologicalChoiceLow, nil
+	}
+	return model.BadgeEcologicalChoiceLow, fmt.Errorf("no badge")
 }
 
 func ComputeCompensationBadge(totalCO2Compensated, totalCO2Emitted float64) (model.Badge, error) {
@@ -66,23 +67,27 @@ func ComputeCompensationBadge(totalCO2Compensated, totalCO2Emitted float64) (mod
 
 	if compensationValue >= compensationHighLimit {
 		return model.BadgeCompensationHigh, nil
-	} else if compensationValue >= compensationMidLimit {
-		return model.BadgeCompensationMid, nil
-	} else if compensationValue >= compensationLowLimit {
-		return model.BadgeCompensationLow, nil
-	} else {
-		return model.BadgeCompensationLow, fmt.Errorf("no badge")
 	}
+	if compensationValue >= compensationMidLimit {
+		return model.BadgeCompensationMid, nil
+	}
+	if compensationValue >= compensationLowLimit {
+		return model.BadgeCompensationLow, nil
+	}
+
+	return model.BadgeCompensationLow, fmt.Errorf("no badge")
 }
 
 func ComputeTravelsNumberCoefficient(numTravels int) (model.Badge, error) {
 	if numTravels >= numTravelsHighLimit {
 		return model.BadgeTravelsNumberHigh, nil
-	} else if numTravels >= numTravelsMidLimit {
-		return model.BadgeTravelsNumberMid, nil
-	} else if numTravels >= numTravelsLowLimit {
-		return model.BadgeTravelsNumberLow, nil
-	} else {
-		return model.BadgeTravelsNumberLow, fmt.Errorf("no badge")
 	}
+	if numTravels >= numTravelsMidLimit {
+		return model.BadgeTravelsNumberMid, nil
+	}
+	if numTravels >= numTravelsLowLimit {
+		fmt.Println("in")
+		return model.BadgeTravelsNumberLow, nil
+	}
+	return model.BadgeTravelsNumberLow, fmt.Errorf("no badge")
 }
