@@ -55,12 +55,14 @@ func (userDAO *UserDAO) InjectBadges(user *model.User) error {
 		return err
 	}
 	for _, travelDetails := range travels {
-		numTravels++
-		totalCO2Compensated += travelDetails.Travel.CO2Compensated
+		if travelDetails.Travel.Confirmed {
+			numTravels++
+			totalCO2Compensated += travelDetails.Travel.CO2Compensated
 
-		for _, segment := range travelDetails.Segments {
-			totalDistance += segment.Distance
-			totalCO2Emitted += segment.CO2Emitted
+			for _, segment := range travelDetails.Segments {
+				totalDistance += segment.Distance
+				totalCO2Emitted += segment.CO2Emitted
+			}
 		}
 	}
 
