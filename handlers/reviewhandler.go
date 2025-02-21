@@ -125,6 +125,23 @@ func createReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// set city id
+	if review.CityID == 0 {
+		if review.CityIata == "" || review.CountryCode == "" {
+			log.Println("Invalid iata and country code")
+			http.Error(w, "Invalid iata and country code", http.StatusBadRequest)
+			return
+		}
+		cityDAO := db.NewCityDAO(db.GetDB())
+		city, err1 := cityDAO.GetCityByIataAndCountryCode(review.CityIata, review.CountryCode)
+		if err1 != nil {
+			log.Println("Invalid iata and country code")
+			http.Error(w, "Invalid iata and country code", http.StatusBadRequest)
+			return
+		}
+		review.CityID = city.CityID
+	}
+
 	// check review data
 	if review.LocalTransportRating < 1 || review.LocalTransportRating > 5 {
 		log.Println("Invalid local transport rating value")
