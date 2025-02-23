@@ -49,3 +49,17 @@ func (b Badge) MarshalJSON() ([]byte, error) {
 	}
 	return nil, errors.New("invalid badge")
 }
+
+func (b *Badge) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	for badge, str := range badgeStrings {
+		if s == str {
+			*b = badge
+			return nil
+		}
+	}
+	return errors.New("invalid badge")
+}
