@@ -44,3 +44,11 @@ func InitDB(testMode string) (*gorm.DB, error) {
 func GetDB() *gorm.DB {
 	return db
 }
+
+func ResetTestDatabase() {
+	// TODO
+
+	// controlla che lo stato sia test, altrimenti non fa nulla
+
+	// poi resetta il database
+}

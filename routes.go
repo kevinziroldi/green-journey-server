@@ -21,6 +21,8 @@ func SetupRoutes(port string) {
 
 	http.HandleFunc("/ranking", handlers.HandleRanking)
 
+	http.HandleFunc("/resetTestDatabase", handlers.HandleResetTestDatabase)
+
 	log.Println("Server starting on port " + port)
 
 	// start server
