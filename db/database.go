@@ -10,7 +10,7 @@ import (
 
 var db *gorm.DB
 
-func InitDB() (*gorm.DB, error) {
+func InitDB(testMode string) (*gorm.DB, error) {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -19,7 +19,14 @@ func InitDB() (*gorm.DB, error) {
 	user := os.Getenv("DB_USERNAME")
 	password := os.Getenv("DB_PASSWORD")
 
-	dsn := "host=localhost user=" + user + " password=" + password + " dbname=green_journey_db port=5432 sslmode=disable"
+	var dsn string
+	if testMode == "real" {
+		dsn = "host=localhost user=" + user + " password=" + password + " dbname=green_journey_db port=5432 sslmode=disable"
+	} else if testMode == "test" {
+		dsn = "host=localhost user=" + user + " password=" + password + " dbname=green_journey_db_test port=5432 sslmode=disable"
+	} else {
+		log.Fatal("Invalid test mode")
+	}
 
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		PrepareStmt: true,
