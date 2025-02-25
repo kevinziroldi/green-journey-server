@@ -161,7 +161,7 @@ func createReview(w http.ResponseWriter, r *http.Request) {
 
 	// insert review in db
 	reviewDAO := db.NewReviewDAO(db.GetDB())
-	err = reviewDAO.CreateReview(review)
+	err = reviewDAO.CreateReview(&review)
 	if err != nil {
 		log.Println("Error while interacting with the database: ", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

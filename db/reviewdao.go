@@ -141,7 +141,9 @@ func injectReviewData(review *model.Review) error {
 	return nil
 }
 
-func (reviewDAO *ReviewDAO) CreateReview(review model.Review) error {
+func (reviewDAO *ReviewDAO) CreateReview(review *model.Review) error {
+	// takes a pointer, in order to update the param struct
+
 	// create transaction
 	transaction := reviewDAO.db.Begin()
 	if transaction.Error != nil {
