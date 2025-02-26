@@ -53,11 +53,17 @@ func ResetTestDatabase() {
 	}
 	testMode := os.Getenv("TEST_MODE")
 
+	// already checked by the handler
+	// double check, if called by someone else in the future
+	// I don't want to delete data from my actual db
 	if testMode != "test" {
 		return
 	}
 
+	// "user" because it is a reserved word in PostgreSQL
+	// don't delete cities in the city table, loaded from dataset
 	err1 := db.Exec(`TRUNCATE TABLE airport, review, reviews_aggregated, segment, travel, "user" CASCADE;`)
+
 	if err1.Error != nil {
 		log.Fatalf("Failed to reset test database: %v", err)
 	}
