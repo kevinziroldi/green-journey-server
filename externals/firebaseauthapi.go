@@ -3,8 +3,10 @@ package externals
 import (
 	"context"
 	"firebase.google.com/go/v4"
+	"github.com/joho/godotenv"
 	"google.golang.org/api/option"
 	"log"
+	"os"
 	"sync"
 )
 
@@ -26,17 +28,29 @@ func InitializeFirebase() *firebase.App {
 }
 
 func VerifyFirebaseToken(ctx context.Context, idToken string) (string, error) {
-	app := InitializeFirebase()
-
-	authClient, err := app.Auth(ctx)
+	// retrieve execution mode
+	err := godotenv.Load()
 	if err != nil {
-		return "", err
+		log.Fatal("Error loading .env file")
 	}
+	testMode := os.Getenv("TEST_MODE")
 
-	token, err := authClient.VerifyIDToken(ctx, idToken)
-	if err != nil {
-		return "", err
+	if testMode == "real" {
+		app := InitializeFirebase()
+
+		authClient, err := app.Auth(ctx)
+		if err != nil {
+			return "", err
+		}
+
+		token, err := authClient.VerifyIDToken(ctx, idToken)
+		if err != nil {
+			return "", err
+		}
+
+		return token.UID, nil
+	} else {
+		// if test mode, return a fake value
+		return "firebase_uid", nil
 	}
-
-	return token.UID, nil
 }
