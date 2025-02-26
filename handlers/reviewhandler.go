@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"green-journey-server/db"
+	"green-journey-server/externals"
 	"green-journey-server/model"
 	"log"
 	"net/http"
@@ -87,7 +88,7 @@ func createReview(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -209,7 +210,7 @@ func modifyReview(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -317,7 +318,7 @@ func deleteReview(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)

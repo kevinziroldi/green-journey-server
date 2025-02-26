@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"green-journey-server/db"
+	"green-journey-server/externals"
 	"green-journey-server/model"
 	"log"
 	"net/http"
@@ -41,7 +42,7 @@ func getUserByFirebaseUID(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -84,7 +85,7 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -193,7 +194,7 @@ func modifyUser(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -305,7 +306,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)

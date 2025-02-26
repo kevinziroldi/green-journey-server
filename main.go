@@ -5,7 +5,6 @@ import (
 	"github.com/joho/godotenv"
 	"green-journey-server/db"
 	"green-journey-server/externals"
-	"green-journey-server/handlers"
 	"green-journey-server/mockservers"
 	"log"
 	"os"
@@ -57,7 +56,7 @@ func main() {
 	}
 
 	// initialize firebase
-	handlers.InitializeFirebase()
+	externals.InitializeFirebase()
 
 	// setup routes
 	SetupRoutes(*port)

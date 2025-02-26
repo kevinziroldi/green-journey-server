@@ -1,4 +1,4 @@
-package handlers
+package externals
 
 import (
 	"context"
@@ -25,7 +25,7 @@ func InitializeFirebase() *firebase.App {
 	return firebaseApp
 }
 
-func verifyFirebaseToken(ctx context.Context, idToken string) (string, error) {
+func VerifyFirebaseToken(ctx context.Context, idToken string) (string, error) {
 	app := InitializeFirebase()
 
 	authClient, err := app.Auth(ctx)

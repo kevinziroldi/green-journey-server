@@ -46,9 +46,19 @@ func GetDB() *gorm.DB {
 }
 
 func ResetTestDatabase() {
-	// TODO
+	// retrieve execution mode
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	testMode := os.Getenv("TEST_MODE")
 
-	// controlla che lo stato sia test, altrimenti non fa nulla
+	if testMode != "test" {
+		return
+	}
 
-	// poi resetta il database
+	err1 := db.Exec(`TRUNCATE TABLE airport, review, reviews_aggregated, segment, travel, "user" CASCADE;`)
+	if err1.Error != nil {
+		log.Fatalf("Failed to reset test database: %v", err)
+	}
 }

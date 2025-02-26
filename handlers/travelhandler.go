@@ -210,7 +210,7 @@ func getTravelsByUserId(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -267,7 +267,7 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -447,7 +447,7 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -571,7 +571,7 @@ func deleteTravel(w http.ResponseWriter, r *http.Request) {
 
 	// verify Firebase token
 	ctx := context.Background()
-	firebaseUID, err := verifyFirebaseToken(ctx, idToken)
+	firebaseUID, err := externals.VerifyFirebaseToken(ctx, idToken)
 	if err != nil {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)

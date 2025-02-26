@@ -1,11 +1,47 @@
 package handlers
 
-import "net/http"
+import (
+	"github.com/joho/godotenv"
+	"green-journey-server/db"
+	"log"
+	"net/http"
+	"os"
+)
 
 func HandleResetTestDatabase(w http.ResponseWriter, r *http.Request) {
-	// TODO
+	switch r.Method {
+	case "POST":
+		resetTestDatabase(w, r)
+	default:
+		log.Println("Method not supported")
+		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
+		return
+	}
+}
 
-	// controlla che lo stato sia test, altrimenti non fa nulla
+func resetTestDatabase(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		log.Println("Method not supported")
+		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
+		return
+	}
 
-	// chiamo db.ResetTestDatabase
+	// retrieve execution mode
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Error loading .env file")
+		http.Error(w, "Error loading .env file", http.StatusInternalServerError)
+	}
+	testMode := os.Getenv("TEST_MODE")
+
+	switch testMode {
+	case "real":
+		log.Println("It is not possible to reset the test database in non-test mode")
+		http.Error(w, "Error resetting the test database", http.StatusUnauthorized)
+	case "test":
+		db.ResetTestDatabase()
+	default:
+		log.Println("Wrong test mode value")
+		http.Error(w, "Error resetting the test database", http.StatusUnauthorized)
+	}
 }
