@@ -306,14 +306,30 @@ func (reviewDAO *ReviewDAO) DeleteReview(reviewID int) error {
 	}
 
 	// update reviewsAggregated
-	reviewsAggregated.NumberRatings -= 1
-	reviewsAggregated.SumLocalTransportRating -= review.LocalTransportRating
-	reviewsAggregated.SumGreenSpacesRating -= review.GreenSpacesRating
-	reviewsAggregated.SumWasteBinsRating -= review.WasteBinsRating
+	if reviewsAggregated.NumberRatings > 1 {
+		// there are other reviews
 
-	result = transaction.Save(&reviewsAggregated)
-	if result.Error != nil {
-		return result.Error
+		reviewsAggregated.NumberRatings -= 1
+		reviewsAggregated.SumLocalTransportRating -= review.LocalTransportRating
+		reviewsAggregated.SumGreenSpacesRating -= review.GreenSpacesRating
+		reviewsAggregated.SumWasteBinsRating -= review.WasteBinsRating
+
+		result = transaction.Save(&reviewsAggregated)
+		if result.Error != nil {
+			return result.Error
+		}
+	} else {
+		// no other review present
+
+		// delete reviews aggregated
+		result = transaction.Delete(&model.ReviewsAggregated{}, reviewsAggregated.CityID)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			transaction.Rollback()
+			return errors.New("reviews aggregated entry not found")
+		}
 	}
 
 	// commit
