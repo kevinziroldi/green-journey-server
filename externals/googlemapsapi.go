@@ -572,6 +572,20 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 			if stepDestCity.CountryName != nil {
 				destinationCountry = *stepDestCity.CountryName
 			}
+
+			shortName := step.TransitDetails.Line.ShortName
+			lineName := step.TransitDetails.Line.Name
+			description := ""
+			if shortName == "" && lineName == "" {
+				description = ""
+			} else if shortName == "" {
+				description = lineName
+			} else if lineName == "" {
+				description = shortName
+			} else {
+				description = shortName + ", " + lineName
+			}
+
 			segment = model.Segment{
 				// id is autoincrement
 				DepartureId:        stepDepCity.CityID,
@@ -583,7 +597,7 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 				DateTime:           time.Date(returnedTime.Year(), returnedTime.Month(), returnedTime.Day(), returnedTime.Hour(), returnedTime.Minute(), returnedTime.Second(), returnedTime.Nanosecond(), returnedTime.Location()),
 				Duration:           time.Duration(step.Duration.Value) * time.Second,
 				Vehicle:            travelMode,
-				Description:        step.TransitDetails.Line.ShortName + ", " + step.TransitDetails.Line.Name,
+				Description:        description,
 				Price:              GetTransitCost(stepDepCity.CityName, stepDestCity.CityName, transitMode, int(distance)),
 				Distance:           distance,
 				CO2Emitted:         co2Emitted,
