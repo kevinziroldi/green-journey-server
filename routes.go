@@ -26,7 +26,7 @@ func SetupRoutes(port string) {
 	log.Println("Server starting on port " + port)
 
 	// start server
-	err := http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServeTLS(":"+port, "GreenJourneyServerCertificate.crt", "GreenJourneyServerKey.key", nil)
 	if err != nil {
 		// fatal condition
 		log.Fatalf("Failed to start the server")
