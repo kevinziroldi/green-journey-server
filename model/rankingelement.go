@@ -6,7 +6,8 @@ type RankingElement struct {
 	UserID              int           `json:"user_id"`
 	FirstName           string        `json:"first_name"`
 	LastName            string        `json:"last_name"`
-	Score               float64       `json:"score"`
+	ScoreShortDistance  float64       `json:"score_short_distance"`
+	ScoreLongDistance   float64       `json:"score_long_distance"`
 	TotalDistance       float64       `json:"total_distance"`
 	TotalDuration       time.Duration `json:"total_duration"`
 	TotalCO2Emitted     float64       `json:"total_co_2_emitted"`

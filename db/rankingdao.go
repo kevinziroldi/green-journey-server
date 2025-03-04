@@ -34,7 +34,7 @@ func (rankingDAO *RankingDao) ComputeShortDistanceRanking(userID int) ([]model.R
 
 	topRankingElements := []model.RankingElement{}
 	for _, topUser := range topUsers {
-		rankingElement, err1 := computeRankingElement(topUser, true)
+		rankingElement, err1 := computeRankingElement(topUser)
 		if err1 != nil {
 			return nil, err1
 		}
@@ -65,7 +65,7 @@ func (rankingDAO *RankingDao) ComputeLongDistanceRanking(userID int) ([]model.Ra
 
 	topRankingElements := []model.RankingElement{}
 	for _, topUser := range topUsers {
-		rankingElement, err1 := computeRankingElement(topUser, false)
+		rankingElement, err1 := computeRankingElement(topUser)
 		if err1 != nil {
 			return nil, err1
 		}
@@ -102,7 +102,7 @@ func addCurrentUser(topUsers []model.User, userID int) ([]model.User, error) {
 	return topUsers, nil
 }
 
-func computeRankingElement(user model.User, isShortDistance bool) (model.RankingElement, error) {
+func computeRankingElement(user model.User) (model.RankingElement, error) {
 	// compute values based on user travels
 	totalDistance := 0.0
 	totalDuration := time.Duration(0)
@@ -128,17 +128,12 @@ func computeRankingElement(user model.User, isShortDistance bool) (model.Ranking
 	}
 
 	// create and return ranking element
-	score := 0.0
-	if isShortDistance {
-		score = user.ScoreShortDistance
-	} else {
-		score = user.ScoreLongDistance
-	}
 	return model.RankingElement{
 		UserID:              user.UserID,
 		FirstName:           user.FirstName,
 		LastName:            user.LastName,
-		Score:               score,
+		ScoreShortDistance:  user.ScoreShortDistance,
+		ScoreLongDistance:   user.ScoreLongDistance,
 		TotalDistance:       totalDistance,
 		TotalDuration:       totalDuration,
 		TotalCO2Emitted:     totalCO2Emitted,
