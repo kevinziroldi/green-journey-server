@@ -28,6 +28,13 @@ func (userDAO *UserDAO) GetUserById(id int) (model.User, error) {
 	return user, result.Error
 }
 
+func (userDAO *UserDAO) GetUserByIdNoBadges(id int) (model.User, error) {
+	var user model.User
+	result := userDAO.db.First(&user, id)
+
+	return user, result.Error
+}
+
 func (userDAO *UserDAO) GetUserByFirebaseUID(firebaseUID string) (model.User, error) {
 	var user model.User
 	result := userDAO.db.Where("firebase_uid = ?", firebaseUID).First(&user)

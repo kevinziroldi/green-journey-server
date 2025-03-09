@@ -125,7 +125,7 @@ func injectReviewData(review *model.Review) error {
 
 	// get user
 	userDAO := NewUserDAO(GetDB())
-	user, err := userDAO.GetUserById(review.UserID)
+	user, err := userDAO.GetUserByIdNoBadges(review.UserID)
 	if err != nil {
 		return err
 	}
@@ -135,9 +135,6 @@ func injectReviewData(review *model.Review) error {
 	review.CountryCode = *city.CountryCode
 	review.FirstName = user.FirstName
 	review.LastName = user.LastName
-	review.ScoreShortDistance = user.ScoreShortDistance
-	review.ScoreLongDistance = user.ScoreLongDistance
-	review.Badges = user.Badges // already injected by GetUserById
 
 	return nil
 }
