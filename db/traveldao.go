@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"green-journey-server/model"
 )
@@ -51,6 +52,12 @@ func (travelDAO *TravelDAO) CreateTravel(travelDetails model.TravelDetails) (mod
 		return model.TravelDetails{}, result.Error
 	}
 
+	// inject review
+	err := injectReviewInTravel(&travelDetails)
+	if err != nil {
+		return model.TravelDetails{}, err
+	}
+
 	return travelDetails, nil
 }
 
@@ -86,6 +93,14 @@ func (travelDAO *TravelDAO) GetTravelRequestsByUserId(userID int) ([]model.Trave
 		})
 	}
 
+	// inject reviews
+	for _, travelDetails := range travelDetailsList {
+		err := injectReviewInTravel(&travelDetails)
+		if err != nil {
+			return []model.TravelDetails{}, err
+		}
+	}
+
 	return travelDetailsList, nil
 }
 
@@ -114,7 +129,15 @@ func (travelDAO *TravelDAO) GetTravelDetailsByTravelID(travelID int) (model.Trav
 		return model.TravelDetails{}, err
 	}
 
-	return model.TravelDetails{Travel: travel, Segments: segments}, nil
+	travelDetails := model.TravelDetails{Travel: travel, Segments: segments}
+
+	// inject review
+	err = injectReviewInTravel(&travelDetails)
+	if err != nil {
+		return model.TravelDetails{}, err
+	}
+
+	return travelDetails, nil
 }
 
 func (travelDAO *TravelDAO) UpdateTravel(travel model.Travel, deltaScore float64, isShortDistance bool) error {
@@ -227,6 +250,27 @@ func (travelDAO *TravelDAO) DeleteTravel(travelID int, deltaScore float64, isSho
 	if result.Error != nil {
 		return result.Error
 	}
+
+	return nil
+}
+
+func injectReviewInTravel(travelDetails *model.TravelDetails) error {
+	// get destination city id
+	destinationSegment := travelDetails.GetDestinationSegment()
+	if destinationSegment == nil {
+		return fmt.Errorf("no destination segment")
+	}
+	destinationCityID := destinationSegment.DestinationId
+
+	// get review
+	reviewDAO := NewReviewDAO(GetDB())
+	review, err := reviewDAO.GetReviewByUserIDAndCityID(travelDetails.Travel.UserID, destinationCityID)
+	if err != nil {
+		return err
+	}
+
+	// inject review
+	travelDetails.Travel.UserReview = review
 
 	return nil
 }

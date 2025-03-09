@@ -34,24 +34,25 @@ func (reviewDAO *ReviewDAO) GetReviewsById(reviewID int) (model.Review, error) {
 	return review, nil
 }
 
-func (reviewDAO *ReviewDAO) GetReviewsByUser(userID int) ([]model.Review, error) {
-	var reviews []model.Review
+func (reviewDAO *ReviewDAO) GetReviewByUserIDAndCityID(userID int, cityID int) (*model.Review, error) {
+	var review model.Review
 
-	// get reviews
-	result := reviewDAO.db.Where("user_id = ?", userID).Find(&reviews)
+	// get review
+	result := reviewDAO.db.Where("id_user = ? AND id_city = ?", userID, cityID).First(&review)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, result.Error
 	}
 
-	// inject data
-	for i, _ := range reviews {
-		err := injectReviewData(&reviews[i])
-		if err != nil {
-			return nil, err
-		}
+	// inject review data
+	err := injectReviewData(&review)
+	if err != nil {
+		return nil, err
 	}
 
-	return reviews, nil
+	return &review, nil
 }
 
 func (reviewDAO *ReviewDAO) GetReviewsByCity(cityID int) ([]model.Review, error) {

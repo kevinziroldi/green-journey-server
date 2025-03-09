@@ -594,9 +594,8 @@ func deleteTravel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get travel
 	travelDAO := db.NewTravelDAO(db.GetDB())
-	travel, err := travelDAO.GetTravelById(travelID)
+	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(travelID)
 	if err != nil {
 		log.Println("Invalid travel id")
 		http.Error(w, "Invalid travel ID", http.StatusBadRequest)
@@ -605,7 +604,7 @@ func deleteTravel(w http.ResponseWriter, r *http.Request) {
 
 	// get user
 	userDAO := db.NewUserDAO(db.GetDB())
-	user, err := userDAO.GetUserById(travel.UserID)
+	user, err := userDAO.GetUserById(travelDetails.Travel.UserID)
 	if err != nil {
 		log.Println("User not found: ", err)
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -616,13 +615,6 @@ func deleteTravel(w http.ResponseWriter, r *http.Request) {
 	if user.FirebaseUID != firebaseUID {
 		log.Println("Unauthorized", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(travel.TravelID)
-	if err != nil {
-		log.Println("Error retrieving travel details: ", err)
-		http.Error(w, "Error retrieving travel details", http.StatusBadRequest)
 		return
 	}
 
