@@ -94,8 +94,8 @@ func (travelDAO *TravelDAO) GetTravelRequestsByUserId(userID int) ([]model.Trave
 	}
 
 	// inject reviews
-	for _, travelDetails := range travelDetailsList {
-		err := injectReviewInTravel(&travelDetails)
+	for i, _ := range travelDetailsList {
+		err := injectReviewInTravel(&travelDetailsList[i])
 		if err != nil {
 			return []model.TravelDetails{}, err
 		}
