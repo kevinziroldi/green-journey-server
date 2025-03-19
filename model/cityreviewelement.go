@@ -8,4 +8,5 @@ type CityReviewElement struct {
 	AverageWasteBinsRating      float64  `json:"average_waste_bins_rating"`
 	HasPrevious                 bool     `json:"has_previous"`
 	HasNext                     bool     `json:"has_next"`
+	NumReviews                  int      `json:"num_reviews"`
 }

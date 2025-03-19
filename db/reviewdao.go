@@ -117,6 +117,13 @@ func (reviewDAO *ReviewDAO) GetNextReviews(cityID int, reviewID int) (model.City
 	// compute averages
 	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
 
+	// get number of reviews
+	var numReviews int64
+	result = db.Model(&model.Review{}).Where("id_city = ?", cityID).Count(&numReviews)
+	if result.Error != nil {
+		return model.CityReviewElement{}, result.Error
+	}
+
 	cityReviewElement := model.CityReviewElement{
 		Reviews:                     reviews,
 		AverageLocalTransportRating: averageLocalTransportRating,
@@ -124,6 +131,7 @@ func (reviewDAO *ReviewDAO) GetNextReviews(cityID int, reviewID int) (model.City
 		AverageWasteBinsRating:      averageWasteBinsRating,
 		HasPrevious:                 true,
 		HasNext:                     hasNext,
+		NumReviews:                  int(numReviews),
 	}
 
 	return cityReviewElement, nil
@@ -164,6 +172,13 @@ func (reviewDAO *ReviewDAO) GetPreviousReviews(cityID int, reviewID int) (model.
 	// compute averages
 	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
 
+	// get number of reviews
+	var numReviews int64
+	result = db.Model(&model.Review{}).Where("id_city = ?", cityID).Count(&numReviews)
+	if result.Error != nil {
+		return model.CityReviewElement{}, result.Error
+	}
+
 	cityReviewElement := model.CityReviewElement{
 		Reviews:                     reviews,
 		AverageLocalTransportRating: averageLocalTransportRating,
@@ -171,6 +186,7 @@ func (reviewDAO *ReviewDAO) GetPreviousReviews(cityID int, reviewID int) (model.
 		AverageWasteBinsRating:      averageWasteBinsRating,
 		HasPrevious:                 hasPrevious,
 		HasNext:                     true,
+		NumReviews:                  int(numReviews),
 	}
 
 	return cityReviewElement, nil
@@ -207,6 +223,13 @@ func (reviewDAO *ReviewDAO) GetFirstReviewsByCityID(cityID int) (model.CityRevie
 	// compute averages
 	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
 
+	// get number of reviews
+	var numReviews int64
+	result = db.Model(&model.Review{}).Where("id_city = ?", cityID).Count(&numReviews)
+	if result.Error != nil {
+		return model.CityReviewElement{}, result.Error
+	}
+
 	cityReviewElement := model.CityReviewElement{
 		Reviews:                     reviews,
 		AverageLocalTransportRating: averageLocalTransportRating,
@@ -214,23 +237,24 @@ func (reviewDAO *ReviewDAO) GetFirstReviewsByCityID(cityID int) (model.CityRevie
 		AverageWasteBinsRating:      averageWasteBinsRating,
 		HasPrevious:                 false,
 		HasNext:                     hasNext,
+		NumReviews:                  int(numReviews),
 	}
 
 	return cityReviewElement, nil
 }
 
 func (reviewDAO *ReviewDAO) GetLastReviewsByCityID(cityID int) (model.CityReviewElement, error) {
-	// get total number
-	var total int64
-	result := db.Model(&model.Review{}).Where("id_city = ?", cityID).Count(&total)
+	// get number of reviews
+	var numReviews int64
+	result := db.Model(&model.Review{}).Where("id_city = ?", cityID).Count(&numReviews)
 	if result.Error != nil {
 		return model.CityReviewElement{}, result.Error
 	}
 
 	// compute offset
-	offset := int(total) - (int(total) % reviewsPageSize)
-	if offset == int(total) {
-		offset = int(total) - reviewsPageSize
+	offset := int(numReviews) - (int(numReviews) % reviewsPageSize)
+	if offset == int(numReviews) {
+		offset = int(numReviews) - reviewsPageSize
 	}
 
 	// get reviews
@@ -260,6 +284,7 @@ func (reviewDAO *ReviewDAO) GetLastReviewsByCityID(cityID int) (model.CityReview
 		AverageWasteBinsRating:      averageWasteBinsRating,
 		HasPrevious:                 hasPrevious,
 		HasNext:                     false,
+		NumReviews:                  int(numReviews),
 	}
 
 	return cityReviewElement, nil
