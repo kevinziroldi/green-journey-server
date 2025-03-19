@@ -144,11 +144,16 @@ func (reviewDAO *ReviewDAO) GetPreviousReviews(cityID int, reviewID int) (model.
 
 	result := db.
 		Where("(id_city = ?) AND ((date_time > ?) OR (date_time = ? AND id_review > ?))", cityID, review.DateTime, review.DateTime, review.ReviewID).
-		Order("date_time desc, id_review desc").
+		Order("date_time asc, id_review asc").
 		Limit(reviewsPageSize + 1).
 		Find(&reviews)
 	if result.Error != nil {
 		return model.CityReviewElement{}, err
+	}
+
+	// invert order
+	for i, j := 0, len(reviews)-1; i < j; i, j = i+1, j-1 {
+		reviews[i], reviews[j] = reviews[j], reviews[i]
 	}
 
 	hasPrevious := len(reviews) == reviewsPageSize+1
