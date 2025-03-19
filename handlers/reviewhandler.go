@@ -44,6 +44,24 @@ func getReviewsForCity(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing departure country code", http.StatusBadRequest)
 		return
 	}
+	reviewIDStr := r.URL.Query().Get("review_id")
+	if reviewIDStr == "" {
+		log.Println("Missing review id")
+		http.Error(w, "Missing review id", http.StatusBadRequest)
+		return
+	}
+	reviewID, err := strconv.Atoi(reviewIDStr)
+	if err != nil {
+		log.Println("Wrong review id")
+		http.Error(w, "Wrong review id", http.StatusBadRequest)
+		return
+	}
+	direction, err := strconv.ParseBool(r.URL.Query().Get("direction"))
+	if err != nil {
+		log.Println("Wrong direction format: ", err)
+		http.Error(w, "Wrong direction format", http.StatusBadRequest)
+		return
+	}
 
 	cityDAO := db.NewCityDAO(db.GetDB())
 	city, err := cityDAO.GetCityByIataAndCountryCode(cityIata, countryCode)
@@ -53,8 +71,16 @@ func getReviewsForCity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get reviews
 	reviewDAO := db.NewReviewDAO(db.GetDB())
-	cityReviewElement, err := reviewDAO.GetCityReviewElementByCityID(city.CityID)
+	var cityReviewElement model.CityReviewElement
+	if direction {
+		// next reviews
+		cityReviewElement, err = reviewDAO.GetNextReviews(city.CityID, reviewID)
+	} else {
+		// previous reviews
+		cityReviewElement, err = reviewDAO.GetPreviousReviews(city.CityID, reviewID)
+	}
 	if err != nil {
 		log.Println("Error getting city review element: ", err)
 		http.Error(w, "Error getting city review element", http.StatusNotFound)
@@ -159,6 +185,8 @@ func createReview(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid waste bins rating value", http.StatusBadRequest)
 		return
 	}
+	// reset time zone
+	review.DateTime = review.DateTime.UTC()
 
 	// insert review in db
 	reviewDAO := db.NewReviewDAO(db.GetDB())
@@ -280,6 +308,8 @@ func modifyReview(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid waste bins rating value", http.StatusBadRequest)
 		return
 	}
+	// reset time zone
+	review.DateTime = review.DateTime.UTC()
 
 	// update review in db
 	reviewDAO := db.NewReviewDAO(db.GetDB())
@@ -343,7 +373,7 @@ func deleteReview(w http.ResponseWriter, r *http.Request) {
 
 	// get review
 	reviewDAO := db.NewReviewDAO(db.GetDB())
-	review, err := reviewDAO.GetReviewsById(reviewID)
+	review, err := reviewDAO.GetReviewById(reviewID)
 	if err != nil {
 		log.Println("Review not found: ", err)
 		http.Error(w, "Review not found", http.StatusBadRequest)
@@ -371,6 +401,116 @@ func deleteReview(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Error while interacting with the db: ", err)
 		http.Error(w, "Error while deleting user", http.StatusBadRequest)
+		return
+	}
+}
+
+func HandleFirstReviews(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		getFirstReviews(w, r)
+	} else {
+		log.Println("Method not supported")
+		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
+		return
+	}
+}
+
+func getFirstReviews(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		log.Println("Method not supported")
+		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
+		return
+	}
+
+	cityIata := r.URL.Query().Get("city_iata")
+	if cityIata == "" {
+		log.Println("Missing city iata")
+		http.Error(w, "Missing departure city iata", http.StatusBadRequest)
+		return
+	}
+	countryCode := r.URL.Query().Get("country_code")
+	if countryCode == "" {
+		log.Println("Missing departure country code")
+		http.Error(w, "Missing departure country code", http.StatusBadRequest)
+		return
+	}
+
+	cityDAO := db.NewCityDAO(db.GetDB())
+	city, err := cityDAO.GetCityByIataAndCountryCode(cityIata, countryCode)
+	if err != nil {
+		log.Println("Error getting city: ", err)
+		http.Error(w, "Error getting city", http.StatusBadRequest)
+		return
+	}
+
+	reviewDAO := db.NewReviewDAO(db.GetDB())
+	cityReviewElement, err := reviewDAO.GetFirstReviewsByCityID(city.CityID)
+	if err != nil {
+		log.Println("Error getting city review element: ", err)
+		http.Error(w, "Error getting city review element", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(cityReviewElement)
+	if err != nil {
+		log.Println("Error encoding JSON: ", err)
+		http.Error(w, "Error encoding", http.StatusInternalServerError)
+		return
+	}
+}
+
+func HandleLastReviews(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		getLastReviews(w, r)
+	} else {
+		log.Println("Method not supported")
+		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
+		return
+	}
+}
+
+func getLastReviews(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		log.Println("Method not supported")
+		http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
+		return
+	}
+
+	cityIata := r.URL.Query().Get("city_iata")
+	if cityIata == "" {
+		log.Println("Missing city iata")
+		http.Error(w, "Missing departure city iata", http.StatusBadRequest)
+		return
+	}
+	countryCode := r.URL.Query().Get("country_code")
+	if countryCode == "" {
+		log.Println("Missing departure country code")
+		http.Error(w, "Missing departure country code", http.StatusBadRequest)
+		return
+	}
+
+	cityDAO := db.NewCityDAO(db.GetDB())
+	city, err := cityDAO.GetCityByIataAndCountryCode(cityIata, countryCode)
+	if err != nil {
+		log.Println("Error getting city: ", err)
+		http.Error(w, "Error getting city", http.StatusBadRequest)
+		return
+	}
+
+	reviewDAO := db.NewReviewDAO(db.GetDB())
+	cityReviewElement, err := reviewDAO.GetLastReviewsByCityID(city.CityID)
+	if err != nil {
+		log.Println("Error getting city review element: ", err)
+		http.Error(w, "Error getting city review element", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(cityReviewElement)
+	if err != nil {
+		log.Println("Error encoding JSON: ", err)
+		http.Error(w, "Error encoding", http.StatusInternalServerError)
 		return
 	}
 }

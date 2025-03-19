@@ -2,11 +2,13 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"green-journey-server/model"
 )
 
 const bestReviewsNumber = 5
+const reviewsPageSize = 10
 
 type ReviewDAO struct {
 	db *gorm.DB
@@ -16,7 +18,7 @@ func NewReviewDAO(db *gorm.DB) *ReviewDAO {
 	return &ReviewDAO{db: db}
 }
 
-func (reviewDAO *ReviewDAO) GetReviewsById(reviewID int) (model.Review, error) {
+func (reviewDAO *ReviewDAO) GetReviewById(reviewID int) (model.Review, error) {
 	var review model.Review
 
 	// get review
@@ -75,13 +77,190 @@ func (reviewDAO *ReviewDAO) GetReviewsByCity(cityID int) ([]model.Review, error)
 	return reviews, nil
 }
 
-func (reviewDAO *ReviewDAO) GetCityReviewElementByCityID(cityID int) (model.CityReviewElement, error) {
-	// get reviews
-	reviews, err := reviewDAO.GetReviewsByCity(cityID)
+func (reviewDAO *ReviewDAO) GetNextReviews(cityID int, reviewID int) (model.CityReviewElement, error) {
+	// get review
+	review, err := reviewDAO.GetReviewById(reviewID)
 	if err != nil {
 		return model.CityReviewElement{}, err
 	}
+	if review.CityID != cityID {
+		return model.CityReviewElement{}, fmt.Errorf("wrong city id and review id")
+	}
 
+	// get next reviews
+	var reviews []model.Review
+
+	result := db.
+		Where("(id_city = ?) AND ((date_time < ?) OR (date_time = ? AND id_review < ?))", cityID, review.DateTime, review.DateTime, review.ReviewID).
+		Order("date_time desc, id_review desc").
+		Limit(reviewsPageSize + 1).
+		Find(&reviews)
+	if result.Error != nil {
+		return model.CityReviewElement{}, err
+	}
+
+	// inject data
+	for i, _ := range reviews {
+		err = injectReviewData(&reviews[i])
+		if err != nil {
+			return model.CityReviewElement{}, err
+		}
+	}
+
+	// previous and next page
+	hasNext := len(reviews) == reviewsPageSize+1
+	if hasNext {
+		// remove extra element
+		reviews = reviews[:reviewsPageSize]
+	}
+
+	// compute averages
+	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
+
+	cityReviewElement := model.CityReviewElement{
+		Reviews:                     reviews,
+		AverageLocalTransportRating: averageLocalTransportRating,
+		AverageGreenSpacesRating:    averageGreenSpacesRating,
+		AverageWasteBinsRating:      averageWasteBinsRating,
+		HasPrevious:                 true,
+		HasNext:                     hasNext,
+	}
+
+	return cityReviewElement, nil
+}
+
+func (reviewDAO *ReviewDAO) GetPreviousReviews(cityID int, reviewID int) (model.CityReviewElement, error) {
+	// get review
+	review, err := reviewDAO.GetReviewById(reviewID)
+	if err != nil {
+		return model.CityReviewElement{}, err
+	}
+	if review.CityID != cityID {
+		return model.CityReviewElement{}, fmt.Errorf("wrong city id and review id")
+	}
+
+	// get previous reviews
+	var reviews []model.Review
+
+	result := db.
+		Where("(id_city = ?) AND ((date_time > ?) OR (date_time = ? AND id_review > ?))", cityID, review.DateTime, review.DateTime, review.ReviewID).
+		Order("date_time desc, id_review desc").
+		Limit(reviewsPageSize + 1).
+		Find(&reviews)
+	if result.Error != nil {
+		return model.CityReviewElement{}, err
+	}
+
+	hasPrevious := len(reviews) == reviewsPageSize+1
+	if hasPrevious {
+		reviews = reviews[:reviewsPageSize]
+	}
+
+	// compute averages
+	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
+
+	cityReviewElement := model.CityReviewElement{
+		Reviews:                     reviews,
+		AverageLocalTransportRating: averageLocalTransportRating,
+		AverageGreenSpacesRating:    averageGreenSpacesRating,
+		AverageWasteBinsRating:      averageWasteBinsRating,
+		HasPrevious:                 hasPrevious,
+		HasNext:                     true,
+	}
+
+	return cityReviewElement, nil
+}
+
+func (reviewDAO *ReviewDAO) GetFirstReviewsByCityID(cityID int) (model.CityReviewElement, error) {
+	var reviews []model.Review
+
+	// get 11 reviews
+	result := db.
+		Where("id_city = ?", cityID).
+		Order("date_time desc, id_review desc").
+		Limit(reviewsPageSize + 1).
+		Find(&reviews)
+	if result.Error != nil {
+		return model.CityReviewElement{}, result.Error
+	}
+
+	// inject data
+	for i, _ := range reviews {
+		err := injectReviewData(&reviews[i])
+		if err != nil {
+			return model.CityReviewElement{}, err
+		}
+	}
+
+	// previous and next page
+	hasNext := len(reviews) == reviewsPageSize+1
+	if hasNext {
+		// remove extra element
+		reviews = reviews[:reviewsPageSize]
+	}
+
+	// compute averages
+	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
+
+	cityReviewElement := model.CityReviewElement{
+		Reviews:                     reviews,
+		AverageLocalTransportRating: averageLocalTransportRating,
+		AverageGreenSpacesRating:    averageGreenSpacesRating,
+		AverageWasteBinsRating:      averageWasteBinsRating,
+		HasPrevious:                 false,
+		HasNext:                     hasNext,
+	}
+
+	return cityReviewElement, nil
+}
+
+func (reviewDAO *ReviewDAO) GetLastReviewsByCityID(cityID int) (model.CityReviewElement, error) {
+	// get total number
+	var total int64
+	result := db.Model(&model.Review{}).Where("id_city = ?", cityID).Count(&total)
+	if result.Error != nil {
+		return model.CityReviewElement{}, result.Error
+	}
+
+	// compute offset
+	offset := int(total) - (int(total) % reviewsPageSize)
+	if offset == int(total) {
+		offset = int(total) - reviewsPageSize
+	}
+
+	// get reviews
+	var reviews []model.Review
+	result = db.Where("id_city = ?", cityID).Order("date_time desc, id_review desc").Offset(offset).Limit(reviewsPageSize).Find(&reviews)
+	if result.Error != nil {
+		return model.CityReviewElement{}, result.Error
+	}
+
+	// inject data
+	for i, _ := range reviews {
+		err := injectReviewData(&reviews[i])
+		if err != nil {
+			return model.CityReviewElement{}, err
+		}
+	}
+
+	hasPrevious := offset > 0
+
+	// compute averages
+	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
+
+	cityReviewElement := model.CityReviewElement{
+		Reviews:                     reviews,
+		AverageLocalTransportRating: averageLocalTransportRating,
+		AverageGreenSpacesRating:    averageGreenSpacesRating,
+		AverageWasteBinsRating:      averageWasteBinsRating,
+		HasPrevious:                 hasPrevious,
+		HasNext:                     false,
+	}
+
+	return cityReviewElement, nil
+}
+
+func computeReviewsAverages(reviews []model.Review) (float64, float64, float64) {
 	// compute averages
 	reviewsCount := len(reviews)
 	sumLocalTransportRating := 0
@@ -101,14 +280,7 @@ func (reviewDAO *ReviewDAO) GetCityReviewElementByCityID(cityID int) (model.City
 		averageWasteBinsRating = float64(sumWasteBinsRating) / float64(reviewsCount)
 	}
 
-	cityReviewElement := model.CityReviewElement{
-		Reviews:                     reviews,
-		AverageLocalTransportRating: averageLocalTransportRating,
-		AverageGreenSpacesRating:    averageGreenSpacesRating,
-		AverageWasteBinsRating:      averageWasteBinsRating,
-	}
-
-	return cityReviewElement, nil
+	return averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating
 }
 
 func injectReviewData(review *model.Review) error {
@@ -368,20 +540,12 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.CityReviewElement, error) 
 	var bestReviewsElements []model.CityReviewElement
 	for i := 0; i < len(reviewsAggregatedList) && i < bestReviewsNumber; i++ {
 		// get reviews
-		reviews, err1 := reviewDAO.GetReviewsByCity(reviewsAggregatedList[i].CityID)
+		reviewElement, err1 := reviewDAO.GetFirstReviewsByCityID(reviewsAggregatedList[i].CityID)
 		if err1 != nil {
 			return nil, err1
 		}
-
-		// build BestReviewsElement
-		bestReviewsElement := model.CityReviewElement{
-			Reviews:                     reviews,
-			AverageLocalTransportRating: reviewsAggregatedList[i].AverageLocalTransportRating,
-			AverageGreenSpacesRating:    reviewsAggregatedList[i].AverageGreenSpacesRating,
-			AverageWasteBinsRating:      reviewsAggregatedList[i].AverageWasteBinsRating,
-		}
-
-		bestReviewsElements = append(bestReviewsElements, bestReviewsElement)
+		// append to list
+		bestReviewsElements = append(bestReviewsElements, reviewElement)
 	}
 
 	return bestReviewsElements, nil

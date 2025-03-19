@@ -6,4 +6,6 @@ type CityReviewElement struct {
 	AverageLocalTransportRating float64  `json:"average_local_transport_rating"`
 	AverageGreenSpacesRating    float64  `json:"average_green_spaces_rating"`
 	AverageWasteBinsRating      float64  `json:"average_waste_bins_rating"`
+	HasPrevious                 bool     `json:"has_previous"`
+	HasNext                     bool     `json:"has_next"`
 }
