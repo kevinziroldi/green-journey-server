@@ -64,6 +64,14 @@ func computeRanking(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// convert nil slice into empty slice
+	if shortDistanceTopUsers == nil {
+		shortDistanceTopUsers = []model.RankingElement{}
+	}
+	if longDistanceTopUsers == nil {
+		longDistanceTopUsers = []model.RankingElement{}
+	}
+
 	// create response object
 	response := RankingResponse{
 		ShortDistanceRanking: shortDistanceTopUsers,

@@ -49,6 +49,7 @@ func (userDAO *UserDAO) GetUserByFirebaseUID(firebaseUID string) (model.User, er
 }
 
 func (userDAO *UserDAO) InjectBadges(user *model.User) error {
+	// empty slice if no badge
 	badges := []model.Badge{}
 
 	// compute data

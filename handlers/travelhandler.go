@@ -104,11 +104,21 @@ func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 
 	// call all apis and return data
 	// always retrieve outward data
-	travelOptions := ComputeApiData(departureCity, destinationCity, departureDate, departureTime, isOutward)
+	travelOptions := computeApiData(departureCity, destinationCity, departureDate, departureTime, isOutward)
 
 	// build response
 	response := TravelOptions{
 		Options: travelOptions,
+	}
+
+	if response.Options == nil {
+		response.Options = [][]model.Segment{}
+	}
+
+	for i, _ := range response.Options {
+		if response.Options[i] == nil {
+			response.Options[i] = []model.Segment{}
+		}
 	}
 
 	elapsed := time.Since(start)
@@ -123,7 +133,7 @@ func HandleSearchTravel(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ComputeApiData(departureCity, destinationCity model.City, date, t time.Time, isOutward bool) [][]model.Segment {
+func computeApiData(departureCity, destinationCity model.City, date, t time.Time, isOutward bool) [][]model.Segment {
 	var apiData [][]model.Segment
 	var wg sync.WaitGroup
 	results := make(chan []model.Segment, 5)
@@ -227,9 +237,6 @@ func getTravelsByUserId(w http.ResponseWriter, r *http.Request) {
 
 	travelDAO := db.NewTravelDAO(db.GetDB())
 
-	// if I get an empty list, it is not an error
-	// declare empty slice and append, in order to have an empty slice and not nil slice
-	travelRequests := []model.TravelDetails{}
 	travels, err := travelDAO.GetTravelRequestsByUserId(user.UserID)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -238,10 +245,18 @@ func getTravelsByUserId(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	travelRequests = append(travelRequests, travels...)
+
+	if travels == nil {
+		travels = []model.TravelDetails{}
+	}
+	for i, _ := range travels {
+		if travels[i].Segments == nil {
+			travels[i].Segments = []model.Segment{}
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(travelRequests)
+	err = json.NewEncoder(w).Encode(travels)
 	if err != nil {
 		log.Println("Error encoding JSON: ", err)
 		http.Error(w, "Error encoding", http.StatusInternalServerError)
@@ -417,6 +432,10 @@ func createTravel(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error while interacting with the database: ", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if travelDetails.Segments == nil {
+		travelDetails.Segments = []model.Segment{}
 	}
 
 	// send response

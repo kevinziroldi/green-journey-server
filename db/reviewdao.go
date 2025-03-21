@@ -88,8 +88,7 @@ func (reviewDAO *ReviewDAO) GetNextReviews(cityID int, reviewID int) (model.City
 	}
 
 	// get next reviews
-	var reviews []model.Review
-
+	var reviews = []model.Review{}
 	result := db.
 		Where("(id_city = ?) AND ((date_time < ?) OR (date_time = ? AND id_review < ?))", cityID, review.DateTime, review.DateTime, review.ReviewID).
 		Order("date_time desc, id_review desc").

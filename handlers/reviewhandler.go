@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"green-journey-server/db"
 	"green-journey-server/externals"
 	"green-journey-server/model"
@@ -82,10 +81,15 @@ func getReviewsForCity(w http.ResponseWriter, r *http.Request) {
 		// previous reviews
 		cityReviewElement, err = reviewDAO.GetPreviousReviews(city.CityID, reviewID)
 	}
+
 	if err != nil {
 		log.Println("Error getting city review element: ", err)
 		http.Error(w, "Error getting city review element", http.StatusNotFound)
 		return
+	}
+
+	if cityReviewElement.Reviews == nil {
+		cityReviewElement.Reviews = []model.Review{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -452,6 +456,10 @@ func getFirstReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if cityReviewElement.Reviews == nil {
+		cityReviewElement.Reviews = []model.Review{}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(cityReviewElement)
 	if err != nil {
@@ -507,6 +515,10 @@ func getLastReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if cityReviewElement.Reviews == nil {
+		cityReviewElement.Reviews = []model.Review{}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(cityReviewElement)
 	if err != nil {
@@ -535,10 +547,6 @@ func getBestReviews(w http.ResponseWriter, r *http.Request) {
 
 	// no authentication needed
 
-	// if I get an empty list, it is not an error
-	// declare empty slice and append, in order to have an empty slice and not nil slice
-	bestReviewElements := []model.CityReviewElement{}
-
 	// get best reviews
 	reviewDAO := db.NewReviewDAO(db.GetDB())
 	bestReviews, err := reviewDAO.GetBestReviews()
@@ -548,12 +556,19 @@ func getBestReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bestReviewElements = append(bestReviewElements, bestReviews...)
-	fmt.Println(bestReviews)
+	if bestReviews == nil {
+		bestReviews = []model.CityReviewElement{}
+	}
+
+	for i, _ := range bestReviews {
+		if bestReviews[i].Reviews == nil {
+			bestReviews[i].Reviews = []model.Review{}
+		}
+	}
 
 	// send response
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(bestReviewElements)
+	err = json.NewEncoder(w).Encode(bestReviews)
 	if err != nil {
 		log.Println("Error encoding JSON: ", err)
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
