@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"green-journey-server/db"
 	"green-journey-server/externals"
 	"green-journey-server/model"
@@ -534,6 +535,10 @@ func getBestReviews(w http.ResponseWriter, r *http.Request) {
 
 	// no authentication needed
 
+	// if I get an empty list, it is not an error
+	// declare empty slice and append, in order to have an empty slice and not nil slice
+	bestReviewElements := []model.CityReviewElement{}
+
 	// get best reviews
 	reviewDAO := db.NewReviewDAO(db.GetDB())
 	bestReviews, err := reviewDAO.GetBestReviews()
@@ -543,9 +548,12 @@ func getBestReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	bestReviewElements = append(bestReviewElements, bestReviews...)
+	fmt.Println(bestReviews)
+
 	// send response
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(bestReviews)
+	err = json.NewEncoder(w).Encode(bestReviewElements)
 	if err != nil {
 		log.Println("Error encoding JSON: ", err)
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
