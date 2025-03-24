@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"github.com/joho/godotenv"
 	"green-journey-server/db"
@@ -8,7 +9,12 @@ import (
 	"green-journey-server/mockservers"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
+
+var shutdownTimeout = 10 * time.Second
 
 func main() {
 	// retrieve execution mode
@@ -27,16 +33,9 @@ func main() {
 	if err != nil || database == nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
+	// defer close db connection
 	defer func() {
-		sqlDB, err := database.DB()
-		if err != nil {
-			log.Println("Failed to get DB from gorm: ", err)
-			return
-		}
-		err = sqlDB.Close()
-		if err != nil {
-			return
-		}
+		db.CloseDBConnection()
 	}()
 
 	// init apis
@@ -59,5 +58,30 @@ func main() {
 	externals.InitializeFirebase()
 
 	// setup routes
-	SetupRoutes(*port)
+	server := SetupServer(*port)
+
+	// start server
+	go func() {
+		log.Printf("Server starting on port %s", *port)
+
+		err = server.ListenAndServeTLS("GreenJourneyServerCertificate.crt", "GreenJourneyServerKey.key")
+		if err != nil {
+			// fatal condition
+			log.Fatalf("Failed to start the server")
+		}
+	}()
+
+	// graceful termination
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutdown signal received, shutting down server")
+	// set timeout to close connections
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server Shutdown Failed: %v", err)
+	}
+
+	log.Println("Server exited gracefully")
 }

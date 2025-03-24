@@ -2,35 +2,34 @@ package main
 
 import (
 	"green-journey-server/handlers"
-	"log"
 	"net/http"
 )
 
-func SetupRoutes(port string) {
+func SetupServer(port string) *http.Server {
+	mux := http.NewServeMux()
+
 	// setup routes
-	http.HandleFunc("/users/user", handlers.HandleUsers)
-	http.HandleFunc("/users", handlers.HandleModifyUser)
+	mux.HandleFunc("/users/user", handlers.HandleUsers)
+	mux.HandleFunc("/users", handlers.HandleModifyUser)
 
-	http.HandleFunc("/travels/search", handlers.HandleSearchTravel)
-	http.HandleFunc("/travels/user", handlers.HandleTravelsUser)
-	http.HandleFunc("/travels/user/", handlers.HandleDeleteTravel)
+	mux.HandleFunc("/travels/search", handlers.HandleSearchTravel)
+	mux.HandleFunc("/travels/user", handlers.HandleTravelsUser)
+	mux.HandleFunc("/travels/user/", handlers.HandleDeleteTravel)
 
-	http.HandleFunc("/reviews/first", handlers.HandleFirstReviews)
-	http.HandleFunc("/reviews/last", handlers.HandleLastReviews)
-	http.HandleFunc("/reviews/best", handlers.HandleBestReviews)
-	http.HandleFunc("/reviews", handlers.HandleReviews)
-	http.HandleFunc("/reviews/", handlers.HandleModifyReviews)
+	mux.HandleFunc("/reviews/first", handlers.HandleFirstReviews)
+	mux.HandleFunc("/reviews/last", handlers.HandleLastReviews)
+	mux.HandleFunc("/reviews/best", handlers.HandleBestReviews)
+	mux.HandleFunc("/reviews", handlers.HandleReviews)
+	mux.HandleFunc("/reviews/", handlers.HandleModifyReviews)
 
-	http.HandleFunc("/ranking", handlers.HandleRanking)
+	mux.HandleFunc("/ranking", handlers.HandleRanking)
 
-	http.HandleFunc("/resetTestDatabase", handlers.HandleResetTestDatabase)
+	mux.HandleFunc("/resetTestDatabase", handlers.HandleResetTestDatabase)
 
-	log.Println("Server starting on port " + port)
-
-	// start server
-	err := http.ListenAndServeTLS(":"+port, "GreenJourneyServerCertificate.crt", "GreenJourneyServerKey.key", nil)
-	if err != nil {
-		// fatal condition
-		log.Fatalf("Failed to start the server")
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: mux,
 	}
+
+	return server
 }

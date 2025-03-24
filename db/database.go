@@ -45,6 +45,17 @@ func GetDB() *gorm.DB {
 	return db
 }
 
+func CloseDBConnection() {
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatal("Failed closing connection: ", err)
+	}
+	err = sqlDB.Close()
+	if err != nil {
+		log.Fatal("Failed closing connection: ", err)
+	}
+}
+
 func ResetTestDatabase() {
 	// retrieve execution mode
 	err := godotenv.Load()
