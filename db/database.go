@@ -73,7 +73,7 @@ func ResetTestDatabase() {
 
 	// "user" because it is a reserved word in PostgreSQL
 	// don't delete cities in the city table, loaded from dataset
-	err1 := db.Exec(`TRUNCATE TABLE airport, review, reviews_aggregated, segment, travel, "user" CASCADE;`)
+	err1 := db.Exec(`TRUNCATE TABLE review, reviews_aggregated, segment, travel, "user" CASCADE;`)
 
 	if err1.Error != nil {
 		log.Fatalf("Failed to reset test database: %v", err)
