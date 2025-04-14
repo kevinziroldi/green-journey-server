@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/joho/godotenv"
 	"green-journey-server/db"
 	"green-journey-server/externals"
 	"green-journey-server/mockservers"
@@ -17,19 +16,18 @@ import (
 var shutdownTimeout = 10 * time.Second
 
 func main() {
-	// retrieve execution mode
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	testMode := os.Getenv("TEST_MODE")
-
-	// get port from flag
+	// retrieve command line arguments
 	port := flag.String("port", "80", "Port on which the server listens")
+	testMode := flag.String("test_mode", "default", "Test mode")
 	flag.Parse()
 
+	// check valid test mode
+	if *testMode != "test" && *testMode != "real" {
+		log.Fatalf("Invalid test mode: %s", *testMode)
+	}
+
 	// init db
-	database, err := db.InitDB(testMode)
+	database, err := db.InitDB(*testMode)
 	if err != nil || database == nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
