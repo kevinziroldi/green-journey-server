@@ -1,11 +1,9 @@
 package handlers
 
 import (
-	"github.com/joho/godotenv"
 	"green-journey-server/db"
 	"log"
 	"net/http"
-	"os"
 )
 
 func HandleResetTestDatabase(w http.ResponseWriter, r *http.Request) {
@@ -26,22 +24,9 @@ func resetTestDatabase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// retrieve execution mode
-	err := godotenv.Load()
+	err := db.ResetTestDatabase()
 	if err != nil {
-		log.Println("Error loading .env file")
-		http.Error(w, "Error loading .env file", http.StatusInternalServerError)
-	}
-	testMode := os.Getenv("TEST_MODE")
-
-	switch testMode {
-	case "real":
-		log.Println("It is not possible to reset the test database in non-test mode")
-		http.Error(w, "Error resetting the test database", http.StatusUnauthorized)
-	case "test":
-		db.ResetTestDatabase()
-	default:
-		log.Println("Wrong test mode value")
-		http.Error(w, "Error resetting the test database", http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Fatalf("Error resetting test database: %v", err)
 	}
 }

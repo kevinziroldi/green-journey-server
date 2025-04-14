@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -9,8 +10,12 @@ import (
 )
 
 var db *gorm.DB
+var testMode string
 
-func InitDB(testMode string) (*gorm.DB, error) {
+func InitDB(testModeArg string) (*gorm.DB, error) {
+	// save testMode
+	testMode = testModeArg
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -56,26 +61,19 @@ func CloseDBConnection() {
 	}
 }
 
-func ResetTestDatabase() {
-	// retrieve execution mode
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	testMode := os.Getenv("TEST_MODE")
-
-	// already checked by the handler
-	// double check, if called by someone else in the future
-	// I don't want to delete data from my actual db
+func ResetTestDatabase() error {
+	// check correct test mode
 	if testMode != "test" {
-		return
+		return fmt.Errorf("wrong test mode")
 	}
 
 	// "user" because it is a reserved word in PostgreSQL
 	// don't delete cities in the city table, loaded from dataset
-	err1 := db.Exec(`TRUNCATE TABLE review, reviews_aggregated, segment, travel, "user" CASCADE;`)
+	err := db.Exec(`TRUNCATE TABLE review, reviews_aggregated, segment, travel, "user" CASCADE;`)
 
-	if err1.Error != nil {
-		log.Fatalf("Failed to reset test database: %v", err)
+	if err.Error != nil {
+		return err.Error
 	}
+
+	return nil
 }

@@ -14,20 +14,30 @@ import (
 )
 
 var shutdownTimeout = 10 * time.Second
+var port string
+var testMode string
 
-func main() {
-	// retrieve command line arguments
-	port := flag.String("port", "80", "Port on which the server listens")
-	testMode := flag.String("test_mode", "default", "Test mode")
+func readCommandLineArguments() {
+	// read arguments
+	portArg := flag.String("port", "80", "Port on which the server listens")
+	testModeArg := flag.String("test_mode", "default", "Test mode")
 	flag.Parse()
+	port = *portArg
+	testMode = *testModeArg
 
 	// check valid test mode
-	if *testMode != "test" && *testMode != "real" {
-		log.Fatalf("Invalid test mode: %s", *testMode)
+	if testMode != "test" && testMode != "real" {
+		log.Fatalf("Invalid test mode: %s", testMode)
 	}
+	log.Println("Test mode:", testMode)
+}
+
+func main() {
+	// read command line arguments
+	readCommandLineArguments()
 
 	// init db
-	database, err := db.InitDB(*testMode)
+	database, err := db.InitDB(testMode)
 	if err != nil || database == nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
@@ -53,14 +63,14 @@ func main() {
 	}
 
 	// initialize firebase
-	externals.InitializeFirebase()
+	externals.InitializeFirebase(testMode)
 
-	// setup routes
-	server := SetupServer(*port)
+	// setup routes and handlers
+	server := SetupServer(port)
 
 	// start server
 	go func() {
-		log.Printf("Server starting on port %s", *port)
+		log.Printf("Server starting on port %s", port)
 
 		err = server.ListenAndServeTLS("GreenJourneyServerCertificate.crt", "GreenJourneyServerKey.key")
 		if err != nil {

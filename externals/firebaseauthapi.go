@@ -3,10 +3,8 @@ package externals
 import (
 	"context"
 	"firebase.google.com/go/v4"
-	"github.com/joho/godotenv"
 	"google.golang.org/api/option"
 	"log"
-	"os"
 	"sync"
 )
 
@@ -14,8 +12,9 @@ var (
 	firebaseApp *firebase.App
 	once        sync.Once
 )
+var testMode string
 
-func InitializeFirebase() *firebase.App {
+func InitializeFirebase(testModeArg string) *firebase.App {
 	once.Do(func() {
 		opt := option.WithCredentialsFile("firebaseServiceAccountKey.json")
 		app, err := firebase.NewApp(context.Background(), nil, opt)
@@ -24,19 +23,15 @@ func InitializeFirebase() *firebase.App {
 		}
 		firebaseApp = app
 	})
+
+	testMode = testModeArg
+
 	return firebaseApp
 }
 
 func VerifyFirebaseToken(ctx context.Context, idToken string) (string, error) {
-	// retrieve execution mode
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	testMode := os.Getenv("TEST_MODE")
-
 	if testMode == "real" {
-		app := InitializeFirebase()
+		app := InitializeFirebase(testMode)
 
 		authClient, err := app.Auth(ctx)
 		if err != nil {
