@@ -531,7 +531,9 @@ func modifyTravel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// convert date and time to UTC
-	newTravel.UserReview.DateTime = newTravel.UserReview.DateTime.UTC()
+	if newTravel.UserReview != nil {
+		newTravel.UserReview.DateTime = newTravel.UserReview.DateTime.UTC()
+	}
 
 	travelDetails, err := travelDAO.GetTravelDetailsByTravelID(existingTravel.TravelID)
 	if err != nil {
