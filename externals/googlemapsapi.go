@@ -611,8 +611,15 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 		segments = append(segments, segment)
 	}
 
+	// remove leading and trailing walking segments
+	segments = removeExtremeWalkingSegments(segments)
+	// set first-class city for first and last segments
 	segments = resetDepDestCity(segments, originCity, destinationCity)
+	// compact consecutive walking segments
 	segments = compactTransitSegments(segments)
+	// remove "local" walking segments
+	segments = removeLocalWalkingSegments(segments)
+	// set data for walking segments
 	segments = setMissingDataWalkingSegments(segments, originCity, destinationCity)
 
 	elapsed := time.Since(start)
@@ -658,6 +665,40 @@ func resetDepDestCity(segments []model.Segment, originCity, destinationCity mode
 	return segments
 }
 
+func removeExtremeWalkingSegments(segments []model.Segment) []model.Segment {
+	n := len(segments)
+	if n == 0 {
+		return segments
+	}
+
+	// find first non-walk index
+	start := 0
+	for start < n && segments[start].Vehicle == "walk" {
+		start++
+	}
+	// find last non-walk index
+	end := n - 1
+	for end >= start && segments[end].Vehicle == "walk" {
+		end--
+	}
+
+	// if all segments are walks, return empty slice
+	if start > end {
+		return []model.Segment{}
+	}
+
+	// slice from first non-walk to last non-walk
+	cleanedSegments := segments[start : end+1]
+
+	// reset num segment
+	for i := 0; i < len(cleanedSegments); i++ {
+		cleanedSegments[i].NumSegment = i + 1
+	}
+
+	return cleanedSegments
+}
+
+// if there are consecutive walking segments, compacts them into one segment
 func compactTransitSegments(segments []model.Segment) []model.Segment {
 	var compactedSegments []model.Segment
 
@@ -712,6 +753,39 @@ func compactTransitSegments(segments []model.Segment) []model.Segment {
 	}
 
 	return compactedSegments
+}
+
+// remove local walking segments, a walk segment is local if it has a previous and next segment,
+// and the destination of the previous segment is the same as the departure of the following one
+func removeLocalWalkingSegments(segments []model.Segment) []model.Segment {
+	n := len(segments)
+	if n < 3 {
+		// too few segments to have a local walk
+		return segments
+	}
+
+	var cleanSegments []model.Segment
+	for i := 0; i < n; i++ {
+		segment := segments[i]
+		// check for candidate local walk
+		if segment.Vehicle == "walk" && i > 0 && i < n-1 {
+			prev := segments[i-1]
+			next := segments[i+1]
+			if prev.DestinationId == next.DepartureId {
+				// skip this local walk
+				continue
+			}
+		}
+		// otherwise, keep it
+		cleanSegments = append(cleanSegments, segment)
+	}
+
+	// reset num segment
+	for i := 0; i < len(cleanSegments); i++ {
+		cleanSegments[i].NumSegment = i + 1
+	}
+
+	return cleanSegments
 }
 
 func setMissingDataWalkingSegments(segments []model.Segment, originCity, destinationCity model.City) []model.Segment {
