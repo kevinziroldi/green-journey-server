@@ -16,14 +16,19 @@ import (
 var shutdownTimeout = 10 * time.Second
 var port string
 var testMode string
+var mockOptions bool
 
 func readCommandLineArguments() {
 	// read arguments
 	portArg := flag.String("port", "80", "Port on which the server listens")
 	testModeArg := flag.String("test_mode", "default", "Test mode")
+	mockOptionsArg := flag.Bool("mock_options", false, "Mock options")
+
 	flag.Parse()
+
 	port = *portArg
 	testMode = *testModeArg
+	mockOptions = *mockOptionsArg
 
 	// check valid test mode
 	if testMode != "test" && testMode != "real" {
@@ -48,7 +53,7 @@ func main() {
 
 	// init apis
 	externals.InitGoogleMapsApi()
-	externals.InitAmadeusApi()
+	externals.InitAmadeusApi(mockOptions)
 
 	// start mock servers in new go routines
 	go mockservers.StartTollApiServer()

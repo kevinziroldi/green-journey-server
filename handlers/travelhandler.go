@@ -160,7 +160,7 @@ func computeApiData(departureCity, destinationCity model.City, date, t time.Time
 
 	wg.Add(1)
 	go amadeusCallAPI(func(dep, dest model.City, d, t time.Time, out bool) ([][]model.Segment, error) {
-		return externals.GetFlights(dep, dest, d, out)
+		return externals.GetFlights(dep, dest, d, t, out)
 	})
 
 	wg.Add(1)
