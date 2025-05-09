@@ -5,6 +5,7 @@ import (
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"log"
 	"os"
 )
@@ -34,6 +35,7 @@ func InitDB(testModeArg string) (*gorm.DB, error) {
 	}
 
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger:      logger.Default.LogMode(logger.Silent),
 		PrepareStmt: true,
 	})
 

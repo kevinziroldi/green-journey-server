@@ -365,7 +365,6 @@ func getRealFlights(departureCity, destinationCity model.City, date time.Time, i
 	}
 
 	elapsed = time.Since(start)
-	log.Println("ANALYZING Amadeus API took: ", elapsed)
 
 	return flights, nil
 }

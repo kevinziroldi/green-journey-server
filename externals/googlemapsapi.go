@@ -436,9 +436,6 @@ func GetDirectionsBus(originCity, destinationCity model.City, date, hour time.Ti
 }
 
 func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City, transitMode string, isOutbound bool) ([]model.Segment, error) {
-
-	start := time.Now()
-
 	// vehicles returned by the api
 
 	busVehicles := []string{"BUS", "INTERCITY_BUS", "SHARE_TAXI", "TROLLEYBUS"}
@@ -621,9 +618,6 @@ func decodeDirectionsTransit(body []byte, originCity, destinationCity model.City
 	segments = removeLocalWalkingSegments(segments)
 	// set data for walking segments
 	segments = setMissingDataWalkingSegments(segments, originCity, destinationCity)
-
-	elapsed := time.Since(start)
-	log.Println("ANALYZING Google Maps API Train/Bus took: ", elapsed)
 
 	return segments, nil
 }
