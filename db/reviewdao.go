@@ -114,12 +114,12 @@ func (reviewDAO *ReviewDAO) GetNextReviews(cityID int, reviewID int) (model.City
 	}
 
 	// compute averages
-	if len(reviews) == 0 {
-		return model.CityReviewElement{}, fmt.Errorf("no review found")
-	}
-	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err := reviewDAO.computeReviewsAverages(reviews[0].CityID)
-	if err != nil {
-		return model.CityReviewElement{}, fmt.Errorf("error computing average")
+	var averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating float64
+	if len(reviews) != 0 {
+		averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err = reviewDAO.computeReviewsAverages(reviews[0].CityID)
+		if err != nil {
+			return model.CityReviewElement{}, fmt.Errorf("error computing average")
+		}
 	}
 
 	// get number of reviews
@@ -175,13 +175,12 @@ func (reviewDAO *ReviewDAO) GetPreviousReviews(cityID int, reviewID int) (model.
 	}
 
 	// compute averages
-	// compute averages
-	if len(reviews) == 0 {
-		return model.CityReviewElement{}, fmt.Errorf("no review found")
-	}
-	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err := reviewDAO.computeReviewsAverages(reviews[0].CityID)
-	if err != nil {
-		return model.CityReviewElement{}, fmt.Errorf("error computing average")
+	var averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating float64
+	if len(reviews) != 0 {
+		averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err = reviewDAO.computeReviewsAverages(reviews[0].CityID)
+		if err != nil {
+			return model.CityReviewElement{}, fmt.Errorf("error computing average")
+		}
 	}
 
 	// get number of reviews
@@ -233,12 +232,13 @@ func (reviewDAO *ReviewDAO) GetFirstReviewsByCityID(cityID int) (model.CityRevie
 	}
 
 	// compute averages
-	if len(reviews) == 0 {
-		return model.CityReviewElement{}, fmt.Errorf("no review found")
-	}
-	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err := reviewDAO.computeReviewsAverages(reviews[0].CityID)
-	if err != nil {
-		return model.CityReviewElement{}, fmt.Errorf("error computing average")
+	var averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating float64
+	var err error
+	if len(reviews) != 0 {
+		averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err = reviewDAO.computeReviewsAverages(reviews[0].CityID)
+		if err != nil {
+			return model.CityReviewElement{}, fmt.Errorf("error computing average")
+		}
 	}
 
 	// get number of reviews
@@ -293,12 +293,13 @@ func (reviewDAO *ReviewDAO) GetLastReviewsByCityID(cityID int) (model.CityReview
 	hasPrevious := offset > 0
 
 	// compute averages
-	if len(reviews) == 0 {
-		return model.CityReviewElement{}, fmt.Errorf("no review found")
-	}
-	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err := reviewDAO.computeReviewsAverages(reviews[0].CityID)
-	if err != nil {
-		return model.CityReviewElement{}, fmt.Errorf("error computing average")
+	var averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating float64
+	var err error
+	if len(reviews) != 0 {
+		averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err = reviewDAO.computeReviewsAverages(reviews[0].CityID)
+		if err != nil {
+			return model.CityReviewElement{}, fmt.Errorf("error computing average")
+		}
 	}
 
 	cityReviewElement := model.CityReviewElement{
@@ -323,7 +324,7 @@ func (reviewDAO *ReviewDAO) computeReviewsAverages(cityId int) (float64, float64
 		Where("id_city = ?", cityId).
 		First(&reviewAggregated)
 
-	if err != nil {
+	if err.Error != nil {
 		if errors.Is(err.Error, gorm.ErrRecordNotFound) {
 			return 0, 0, 0, nil
 		} else {
@@ -579,8 +580,8 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.CityReviewElement, error) 
         *,
         (
           (sum_local_transport_rating::FLOAT / NULLIF(number_ratings, 0))
-          + (sum_green_spaces_rating::FLOAT    / NULLIF(number_ratings, 0))
-          + (sum_waste_bins_rating::FLOAT     / NULLIF(number_ratings, 0))
+          + (sum_green_spaces_rating::FLOAT / NULLIF(number_ratings, 0))
+          + (sum_waste_bins_rating::FLOAT / NULLIF(number_ratings, 0))
         ) AS total_average
     `).
 		Order("total_average DESC").
