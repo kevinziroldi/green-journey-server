@@ -114,7 +114,13 @@ func (reviewDAO *ReviewDAO) GetNextReviews(cityID int, reviewID int) (model.City
 	}
 
 	// compute averages
-	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
+	if len(reviews) == 0 {
+		return model.CityReviewElement{}, fmt.Errorf("no review found")
+	}
+	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err := reviewDAO.computeReviewsAverages(reviews[0].CityID)
+	if err != nil {
+		return model.CityReviewElement{}, fmt.Errorf("error computing average")
+	}
 
 	// get number of reviews
 	var numReviews int64
@@ -169,7 +175,14 @@ func (reviewDAO *ReviewDAO) GetPreviousReviews(cityID int, reviewID int) (model.
 	}
 
 	// compute averages
-	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
+	// compute averages
+	if len(reviews) == 0 {
+		return model.CityReviewElement{}, fmt.Errorf("no review found")
+	}
+	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err := reviewDAO.computeReviewsAverages(reviews[0].CityID)
+	if err != nil {
+		return model.CityReviewElement{}, fmt.Errorf("error computing average")
+	}
 
 	// get number of reviews
 	var numReviews int64
@@ -220,7 +233,13 @@ func (reviewDAO *ReviewDAO) GetFirstReviewsByCityID(cityID int) (model.CityRevie
 	}
 
 	// compute averages
-	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
+	if len(reviews) == 0 {
+		return model.CityReviewElement{}, fmt.Errorf("no review found")
+	}
+	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err := reviewDAO.computeReviewsAverages(reviews[0].CityID)
+	if err != nil {
+		return model.CityReviewElement{}, fmt.Errorf("error computing average")
+	}
 
 	// get number of reviews
 	var numReviews int64
@@ -274,7 +293,13 @@ func (reviewDAO *ReviewDAO) GetLastReviewsByCityID(cityID int) (model.CityReview
 	hasPrevious := offset > 0
 
 	// compute averages
-	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating := computeReviewsAverages(reviews)
+	if len(reviews) == 0 {
+		return model.CityReviewElement{}, fmt.Errorf("no review found")
+	}
+	averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, err := reviewDAO.computeReviewsAverages(reviews[0].CityID)
+	if err != nil {
+		return model.CityReviewElement{}, fmt.Errorf("error computing average")
+	}
 
 	cityReviewElement := model.CityReviewElement{
 		Reviews:                     reviews,
@@ -289,27 +314,32 @@ func (reviewDAO *ReviewDAO) GetLastReviewsByCityID(cityID int) (model.CityReview
 	return cityReviewElement, nil
 }
 
-func computeReviewsAverages(reviews []model.Review) (float64, float64, float64) {
-	// compute averages
-	reviewsCount := len(reviews)
-	sumLocalTransportRating := 0
-	sumGreenSpacesRating := 0
-	sumWasteBinsRating := 0
-	for _, review := range reviews {
-		sumLocalTransportRating += review.LocalTransportRating
-		sumGreenSpacesRating += review.GreenSpacesRating
-		sumWasteBinsRating += review.WasteBinsRating
-	}
-	averageLocalTransportRating := 0.0
-	averageGreenSpacesRating := 0.0
-	averageWasteBinsRating := 0.0
-	if reviewsCount > 0 {
-		averageLocalTransportRating = float64(sumLocalTransportRating) / float64(reviewsCount)
-		averageGreenSpacesRating = float64(sumGreenSpacesRating) / float64(reviewsCount)
-		averageWasteBinsRating = float64(sumWasteBinsRating) / float64(reviewsCount)
+func (reviewDAO *ReviewDAO) computeReviewsAverages(cityId int) (float64, float64, float64, error) {
+	var reviewAggregated model.ReviewsAggregated
+
+	err := reviewDAO.db.
+		Table("reviews_aggregated").
+		Select("*").
+		Where("id_city = ?", cityId).
+		First(&reviewAggregated)
+
+	if err != nil {
+		if errors.Is(err.Error, gorm.ErrRecordNotFound) {
+			return 0, 0, 0, nil
+		} else {
+			return 0, 0, 0, err.Error
+		}
 	}
 
-	return averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating
+	if reviewAggregated.NumberRatings == 0 {
+		return 0, 0, 0, nil
+	}
+
+	averageLocalTransportRating := float64(reviewAggregated.SumLocalTransportRating) / float64(reviewAggregated.NumberRatings)
+	averageGreenSpacesRating := float64(reviewAggregated.SumGreenSpacesRating) / float64(reviewAggregated.NumberRatings)
+	averageWasteBinsRating := float64(reviewAggregated.SumWasteBinsRating) / float64(reviewAggregated.NumberRatings)
+
+	return averageLocalTransportRating, averageGreenSpacesRating, averageWasteBinsRating, nil
 }
 
 func injectReviewData(review *model.Review) error {
@@ -545,7 +575,14 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.CityReviewElement, error) 
 
 	err := reviewDAO.db.
 		Table("reviews_aggregated").
-		Select("*, ((sum_local_transport_rating / NULLIF(number_ratings, 0)) + (sum_green_spaces_rating / NULLIF(number_ratings, 0)) + (sum_waste_bins_rating / NULLIF(number_ratings, 0))) AS total_average").
+		Select(`
+        *,
+        (
+          (sum_local_transport_rating::FLOAT / NULLIF(number_ratings, 0))
+          + (sum_green_spaces_rating::FLOAT    / NULLIF(number_ratings, 0))
+          + (sum_waste_bins_rating::FLOAT     / NULLIF(number_ratings, 0))
+        ) AS total_average
+    `).
 		Order("total_average DESC").
 		Limit(5).
 		Scan(&reviewsAggregatedList)
@@ -556,14 +593,6 @@ func (reviewDAO *ReviewDAO) GetBestReviews() ([]model.CityReviewElement, error) 
 		} else {
 			return nil, err.Error
 		}
-	}
-
-	// inject average
-	for i, _ := range reviewsAggregatedList {
-		// inject averages
-		reviewsAggregatedList[i].AverageLocalTransportRating = float64(reviewsAggregatedList[i].SumLocalTransportRating) / float64(reviewsAggregatedList[i].NumberRatings)
-		reviewsAggregatedList[i].AverageGreenSpacesRating = float64(reviewsAggregatedList[i].SumGreenSpacesRating) / float64(reviewsAggregatedList[i].NumberRatings)
-		reviewsAggregatedList[i].AverageWasteBinsRating = float64(reviewsAggregatedList[i].SumWasteBinsRating) / float64(reviewsAggregatedList[i].NumberRatings)
 	}
 
 	var bestReviewsElements []model.CityReviewElement

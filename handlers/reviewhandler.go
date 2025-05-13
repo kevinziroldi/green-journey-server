@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"green-journey-server/db"
 	"green-journey-server/externals"
 	"green-journey-server/model"
@@ -554,6 +555,13 @@ func getBestReviews(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error getting best reviews: ", err)
 		http.Error(w, "Error getting best reviews", http.StatusBadRequest)
 		return
+	}
+
+	for i, _ := range bestReviews {
+		fmt.Println(bestReviews[i].Reviews[0].CityIata)
+		fmt.Println(bestReviews[i].AverageGreenSpacesRating)
+		fmt.Println(bestReviews[i].AverageLocalTransportRating)
+		fmt.Println(bestReviews[i].AverageWasteBinsRating)
 	}
 
 	if bestReviews == nil {
