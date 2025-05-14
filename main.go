@@ -6,6 +6,7 @@ import (
 	"green-journey-server/db"
 	"green-journey-server/externals"
 	"green-journey-server/mockservers"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -17,18 +18,21 @@ var shutdownTimeout = 10 * time.Second
 var port string
 var testMode string
 var mockOptions bool
+var logger bool
 
 func readCommandLineArguments() {
 	// read arguments
 	portArg := flag.String("port", "80", "Port on which the server listens")
 	testModeArg := flag.String("test_mode", "default", "Test mode")
 	mockOptionsArg := flag.Bool("mock_options", false, "Mock options")
+	loggerArg := flag.Bool("logger", false, "Enable logger")
 
 	flag.Parse()
 
 	port = *portArg
 	testMode = *testModeArg
 	mockOptions = *mockOptionsArg
+	logger = *loggerArg
 
 	// check valid test mode
 	if testMode != "test" && testMode != "real" {
@@ -83,6 +87,11 @@ func main() {
 			log.Fatalf("Failed to start the server")
 		}
 	}()
+
+	// enable/disable logger
+	if !logger {
+		log.SetOutput(io.Discard)
+	}
 
 	// graceful termination
 	quit := make(chan os.Signal, 1)
