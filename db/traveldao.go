@@ -237,8 +237,14 @@ func (travelDAO *TravelDAO) DeleteTravel(travelID int, deltaScore float64, isSho
 
 	if isShortDistance {
 		user.ScoreShortDistance -= deltaScore
+		if user.ScoreShortDistance < 0 {
+			user.ScoreShortDistance = 0
+		}
 	} else {
 		user.ScoreLongDistance -= deltaScore
+		if user.ScoreLongDistance < 0 {
+			user.ScoreLongDistance = 0
+		}
 	}
 	result = transaction.Save(&user)
 	if result.Error != nil {
