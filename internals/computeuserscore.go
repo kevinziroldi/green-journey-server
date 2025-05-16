@@ -52,7 +52,7 @@ func ComputeDeltaScoreModify(travelDetails model.TravelDetails, co2Compensated f
 	if travel.CO2Compensated < co2Compensated {
 		deltaScore += CompensationCoefficient * (co2Compensated - travel.CO2Compensated)
 
-		if co2Compensated == totalCO2Emitted {
+		if co2Compensated >= totalCO2Emitted {
 			deltaScore += BonusScore
 		}
 	}
