@@ -96,7 +96,7 @@ func ComputeDeltaScoreDelete(travelDetails model.TravelDetails) (float64, bool, 
 		deltaScore += travelCoefficient * totalDistance / totalCO2Emitted
 	}
 	deltaScore += CompensationCoefficient * travel.CO2Compensated
-	if travel.CO2Compensated == totalCO2Emitted {
+	if travel.CO2Compensated >= totalCO2Emitted {
 		deltaScore += BonusScore
 	}
 
