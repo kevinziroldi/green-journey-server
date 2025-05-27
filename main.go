@@ -22,7 +22,7 @@ var logger bool
 
 func readCommandLineArguments() {
 	// read arguments
-	portArg := flag.String("port", "80", "Port on which the server listens")
+	portArg := flag.String("port", "443", "Port on which the server listens")
 	testModeArg := flag.String("test_mode", "default", "Test mode")
 	mockOptionsArg := flag.Bool("mock_options", false, "Mock options")
 	loggerArg := flag.Bool("logger", false, "Enable logger")
