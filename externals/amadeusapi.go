@@ -171,7 +171,7 @@ func getRealFlights(departureCity, destinationCity model.City, date time.Time, i
 	params.Add("destinationLocationCode", destinationIata)
 	params.Add("departureDate", departureDate)
 	params.Add("adults", "1")
-	params.Add("max", "3")
+	params.Add("max", "2")
 
 	apiUrl := fmt.Sprintf("%s?%s", baseUrl, params.Encode())
 
@@ -181,7 +181,7 @@ func getRealFlights(departureCity, destinationCity model.City, date time.Time, i
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
-	client := &http.Client{}
+	client := &http.Client{Timeout: 3 * time.Second}
 
 	start := time.Now()
 

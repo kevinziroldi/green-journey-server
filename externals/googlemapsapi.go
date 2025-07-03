@@ -142,8 +142,6 @@ func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, h
 	elapsed := time.Since(start)
 	log.Println("CALL Google Maps API Bike took: ", elapsed)
 
-	start = time.Now()
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("error reading the body: ", err)
@@ -207,9 +205,6 @@ func GetDirectionsBike(originCity, destinationCity model.City, date time.Time, h
 		TravelID:           -1,
 	}
 
-	elapsed = time.Since(start)
-	log.Println("ANALYZING Google Maps API Bike took: ", elapsed)
-
 	return []model.Segment{segment}, nil
 }
 
@@ -246,8 +241,6 @@ func GetDirectionsCar(originCity, destinationCity model.City, date time.Time, ho
 
 	elapsed := time.Since(start)
 	log.Println("CALL Google Maps API Car took: ", elapsed)
-
-	start = time.Now()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -314,9 +307,6 @@ func GetDirectionsCar(originCity, destinationCity model.City, date time.Time, ho
 		IsOutward:          isOutbound,
 		TravelID:           -1,
 	}
-
-	elapsed = time.Since(start)
-	log.Println("ANALYZING Google Maps API Car took: ", elapsed)
 
 	return []model.Segment{segment}, nil
 }
