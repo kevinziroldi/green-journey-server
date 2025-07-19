@@ -1,7 +1,7 @@
 # GreenJourney backend server 
 
 ## Description
-GreenJourney Server is a RESTful server exposing API endpoints through HTTPS protocol. It is developed in Golang, a language providing high-performance networking and multiprocessing,following MVC design pattern to ease separation of concerns.  
+GreenJourney Server is a RESTful server exposing API endpoints through HTTPS protocol. It is developed in Golang, a language providing high-performance networking and multiprocessing, following MVC design pattern to ease separation of concerns.  
 The application was developed for the course Design and Implementation of Mobile Application, at Politecnico di Milano.  
 The documentation can be found [here](https://github.com/kevinziroldi/green-journey-server/blob/main/GreenJourneyDD.pdf).
 
